@@ -65,12 +65,14 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    e. Section 4 — Drawing and Labelling (if applicable)
    f. Section 5 — Calculations / Application Questions (numbered starting at 1)
    g. Section 6 — Summary / Key Takeaways (bullet points)
-   h. Section 7 — Mark Scheme (numbering restarts per section — see below)
-   i. Section 8 — Self-Assessment / Progress Grid (RAG rating)
-   j. Section 9 — Topics to Revisit (numbered 1, 2, 3 only)
-   k. Section 10 — Targets for Next Lesson (numbered 1, 2, 3 only)
-   l. Section 11 — Self-Assessment Actions (checkboxes)
-   m. Section 12 — Document Info (version, date, page count)
+   h. Section 7 — Sentence Starters / Writing Frames (bullet points to help
+      students structure written answers, e.g. "The function of the mitochondria is…")
+   i. Section 8 — Mark Scheme (numbering restarts per section — see below)
+   j. Section 9 — Self-Assessment / Progress Grid (RAG rating)
+   k. Section 10 — Topics to Revisit (numbered 1, 2, 3 only)
+   l. Section 11 — Targets for Next Lesson (numbered 1, 2, 3 only)
+   m. Section 12 — Self-Assessment Actions (checkboxes)
+   n. Section 13 — Document Info (version, date, page count)
 
 3. KNOWLEDGE CHUNKS (Section 3) — create 3-5 chunks, each containing:
    - Introduction paragraph

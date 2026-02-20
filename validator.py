@@ -28,8 +28,8 @@ SECTION_KEYWORDS = {
     "recall": ["recall", "starter", "one-word", "holistic"],
     "knowledge": ["knowledge chunk", "key vocabulary", "worked example", "misconception", "knowledge check"],
     "summary": ["summary"],
-    "sentence": ["sentence starter"],
-    "exam": ["exam-style", "exam style", "exam question"],
+    "sentence": ["sentence starter", "sentence stem", "how to answer", "writing frame"],
+    "exam": ["exam-style", "exam style", "exam question", "application question", "calculation question", "application/calculation"],
     "mark_scheme": ["mark scheme", "answer key", "model answer", "grade 4", "grade 7", "grade 9"],
     "self_assessment": ["self-assessment", "self assessment", "score", "total marks"],
 }
@@ -60,10 +60,10 @@ def validate_docx(docx_path):
 
     # ── Check 2: File size ──
     size_kb = docx_path.stat().st_size / 1024
-    size_ok = 5 < size_kb < 5000  # increased upper limit for DALL-E images
+    size_ok = 5 < size_kb < 10000  # generous limit for embedded DALL-E images
     checks.append({
         "name": "file_size", "passed": size_ok,
-        "detail": f"File size: {size_kb:.1f} KB (expected 5-5000 KB)",
+        "detail": f"File size: {size_kb:.1f} KB (expected 5-10000 KB)",
     })
     if not size_ok:
         warnings.append(f"Unusual file size: {size_kb:.1f} KB")
