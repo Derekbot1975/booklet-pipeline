@@ -284,24 +284,38 @@
           <p style="margin-bottom:12px; color:#86868b;">
             Generate booklets for all pending lessons via Claude API. Each booklet takes 1-2 minutes.
           </p>
-          <div style="display:flex; gap:12px; margin-bottom:12px;">
-            <select id="batch-subject" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;">
+
+          <!-- Filter row -->
+          <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+            <select id="batch-subject" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;" onchange="updateBatchEstimate()">
               <option value="">All Subjects</option>
               {% for s in subjects %}
               <option value="{{ s }}">{{ s }}</option>
               {% endfor %}
             </select>
-            <select id="batch-year" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;">
+            <select id="batch-year" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;" onchange="updateBatchEstimate()">
               <option value="">All Years</option>
               {% for y in years %}
               <option value="{{ y }}">Year {{ y }}</option>
               {% endfor %}
             </select>
           </div>
+
+          <!-- Model selector -->
+          <div style="margin-bottom:14px;">
+            <label style="display:block; font-weight:600; margin-bottom:6px; font-size:14px;">Claude Model</label>
+            <div id="batch-model-options" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <div id="batch-model-note" style="margin-top:6px; font-size:13px; color:#86868b;"></div>
+          </div>
+
           <div class="checkbox-row">
             <input type="checkbox" id="batch-replace-all">
             <label for="batch-replace-all">Replace all existing booklets (otherwise skip existing)</label>
           </div>
+
+          <!-- Cost estimate -->
+          <div id="batch-estimate" style="margin:14px 0; padding:12px; background:#f2f2f7; border-radius:8px; font-size:14px; line-height:1.8;"></div>
+
           <div class="actions">
             <button class="btn btn-success" onclick="startBatchGeneration()">Start Generation</button>
             <button class="btn btn-secondary" onclick="closeBatchModal()">Cancel</button>
@@ -439,6 +453,43 @@
     let pendingReplaceLessonNum = null;
     let batchEventSource = null;
     let batchId = null;
+    let batchTotalCost = 0;
+
+    // ─── Model pricing (per million tokens) ───
+    const MODELS = [
+      {
+        id: 'claude-sonnet-4-5-20250929',
+        label: 'Sonnet 4.5 — Recommended',
+        note: 'Most accurate for structured content. ~$0.20/booklet',
+        input: 3.00, output: 15.00, cache_write: 3.75, cache_read: 0.30,
+      },
+      {
+        id: 'claude-haiku-3-5-20241022',
+        label: 'Haiku 3.5 — Budget',
+        note: 'Faster and cheaper but less reliable on complex formatting. ~$0.05/booklet',
+        input: 0.80, output: 4.00, cache_write: 1.00, cache_read: 0.08,
+      },
+    ];
+
+    function getModelPricing(modelId) {
+      return MODELS.find(m => m.id === modelId) || MODELS[0];
+    }
+
+    function calcCost(usage, modelId) {
+      const p = getModelPricing(modelId);
+      return (
+        (usage.input_tokens || 0) * p.input / 1e6 +
+        (usage.output_tokens || 0) * p.output / 1e6 +
+        (usage.cache_creation_input_tokens || 0) * p.cache_write / 1e6 +
+        (usage.cache_read_input_tokens || 0) * p.cache_read / 1e6
+      );
+    }
+
+    function fmtCost(c) {
+      if (c === 0) return '$0.00';
+      if (c < 0.001) return '<$0.001';
+      return '$' + c.toFixed(3);
+    }
 
     // Upload wizard state
     let uploadPreview = null;
@@ -597,6 +648,13 @@
         <div class="detail-card">
           <h3 style="margin-top:0">Pipeline Actions</h3>
           <p style="margin-bottom:12px; color:#86868b;">Generate via API, validate the output, then upload to Google Drive.</p>
+          <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:600; margin-bottom:6px; font-size:13px;">Model</label>
+            <select id="model-select" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:13px; width:100%;" onchange="updateModelNote()">
+              ${MODELS.map(m => `<option value="${m.id}" ${m.id === 'claude-sonnet-4-5-20250929' ? 'selected' : ''}>${m.label}</option>`).join('')}
+            </select>
+            <div id="model-note" style="margin-top:5px; font-size:12px; color:#86868b;"></div>
+          </div>
           <div class="actions" style="flex-wrap:wrap">
             <button class="btn btn-primary" id="btn-generate" onclick="generateBooklet(${lesson.year}, ${lesson.lesson_number})">
               Generate via Claude API
@@ -621,6 +679,8 @@
           </div>
         </div>
       `;
+      // Show note for default model selection
+      updateModelNote();
     }
 
     function escapeHtml(text) {
@@ -1020,6 +1080,7 @@
     async function doGenerate(year, lessonNum, replace) {
       const btn = document.getElementById('btn-generate');
       const resultDiv = document.getElementById('action-result');
+      const model = document.getElementById('model-select')?.value || MODELS[0].id;
       btn.disabled = true;
       btn.textContent = 'Generating...';
       resultDiv.innerHTML = '<p style="color:#86868b">Sending to Claude API. This may take 1-2 minutes...</p>';
@@ -1028,17 +1089,24 @@
         const res = await fetch(`/api/generate/${year}/${lessonNum}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ replace }),
+          body: JSON.stringify({ replace, model }),
         });
         const data = await res.json();
         if (data.error) {
           resultDiv.innerHTML = `<p style="color:#c62828">Error: ${data.error}</p>`;
         } else {
-          const pdfInfo = data.pdf_path ? `<br>PDF: <code>${data.pdf_path}</code>` : '<br><span style="color:#b36b00">PDF conversion not available</span>';
+          const cost = calcCost(data.usage, data.model);
+          const cacheInfo = data.usage.cache_read_input_tokens
+            ? ` · ${data.usage.cache_read_input_tokens.toLocaleString()} cached`
+            : '';
+          const pdfInfo = data.pdf_path
+            ? `<br>PDF: <code>${data.pdf_path}</code>`
+            : '<br><span style="color:#b36b00">PDF conversion not available</span>';
           resultDiv.innerHTML = `
-            <div style="background:#e8f8ed; padding:12px; border-radius:8px;">
-              <b>${replace ? 'Replaced' : 'Generated'} successfully</b> in ${data.duration_s}s<br>
-              Tokens: ${data.usage.input_tokens} in / ${data.usage.output_tokens} out${data.usage.cache_read_input_tokens ? ` (${data.usage.cache_read_input_tokens} cached)` : ''}<br>
+            <div style="background:#e8f8ed; padding:12px; border-radius:8px; font-size:13px;">
+              <b style="font-size:14px;">${replace ? 'Replaced' : 'Generated'} successfully</b> in ${data.duration_s}s<br>
+              <span style="font-size:14px; font-weight:600; color:#1a7f37;">Cost: ${fmtCost(cost)}</span><br>
+              Tokens: ${data.usage.input_tokens.toLocaleString()} in / ${data.usage.output_tokens.toLocaleString()} out${cacheInfo}<br>
               Model: ${data.model}<br>
               DOCX: <code>${data.docx_path}</code>${pdfInfo}
             </div>`;
@@ -1139,6 +1207,66 @@
       document.getElementById('batch-setup').style.display = 'block';
       document.getElementById('batch-running').style.display = 'none';
       document.getElementById('batch-complete').style.display = 'none';
+      initBatchModelOptions();
+      updateBatchEstimate();
+    }
+
+    function initBatchModelOptions() {
+      const container = document.getElementById('batch-model-options');
+      container.innerHTML = MODELS.map((m, i) => `
+        <label style="display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #d2d2d7; border-radius:8px; cursor:pointer; background:${i===0?'#f0f8ff':'#fff'};" id="batch-model-option-${i}">
+          <input type="radio" name="batch-model" value="${m.id}" ${i===0?'checked':''} style="margin-top:2px;" onchange="highlightBatchModel(); updateBatchEstimate();">
+          <div>
+            <div style="font-weight:600; font-size:14px;">${m.label.replace(' — ', ' <span style="color:#86868b; font-weight:400;">— </span>')}</div>
+            <div style="font-size:12px; color:#86868b; margin-top:2px;">${m.note}</div>
+          </div>
+        </label>`).join('');
+    }
+
+    function highlightBatchModel() {
+      MODELS.forEach((m, i) => {
+        const el = document.getElementById(`batch-model-option-${i}`);
+        if (!el) return;
+        const radio = el.querySelector('input[type="radio"]');
+        el.style.background = radio.checked ? '#f0f8ff' : '#fff';
+        el.style.borderColor = radio.checked ? '#007aff' : '#d2d2d7';
+      });
+    }
+
+    function updateBatchEstimate() {
+      const subject = document.getElementById('batch-subject')?.value || '';
+      const year = document.getElementById('batch-year')?.value || '';
+      const modelId = document.querySelector('input[name="batch-model"]:checked')?.value || MODELS[0].id;
+      const pricing = getModelPricing(modelId);
+
+      // Count pending lessons matching current filter
+      let filtered = allLessons.filter(l => l.status !== 'uploaded');
+      if (subject) filtered = filtered.filter(l => l.subject === subject);
+      if (year) filtered = filtered.filter(l => String(l.year) === String(year));
+      const pending = filtered.filter(l => !l.status || l.status === 'pending').length;
+      const total = filtered.length;
+
+      // Estimate: ~350 input tokens (non-cached) + ~1200 cache read + ~13000 output per booklet
+      const costPer = 350 * pricing.input / 1e6 + 1200 * pricing.cache_read / 1e6 + 13000 * pricing.output / 1e6;
+      const estTotal = costPer * pending;
+      const estAll = costPer * total;
+
+      const div = document.getElementById('batch-estimate');
+      if (!div) return;
+      div.innerHTML = `
+        <b>Scope:</b> ${total} booklets in filter · ${pending} pending (will be generated)<br>
+        <b>Estimated cost (pending):</b> ~${fmtCost(estTotal)}
+        <span style="color:#86868b; font-size:12px;">(~${fmtCost(costPer)}/booklet · replacing all: ~${fmtCost(estAll)})</span><br>
+        <span style="color:#86868b; font-size:12px;">⚡ Prompt caching active — system prompt tokens heavily discounted after first booklet</span>
+      `;
+    }
+
+    function updateModelNote() {
+      const sel = document.getElementById('model-select');
+      const note = document.getElementById('model-note');
+      if (!sel || !note) return;
+      const m = getModelPricing(sel.value);
+      note.textContent = m ? m.note : '';
     }
 
     function closeBatchModal() {
@@ -1155,6 +1283,9 @@
       const subject = document.getElementById('batch-subject').value;
       const year = document.getElementById('batch-year').value;
       const replaceAll = document.getElementById('batch-replace-all').checked;
+      const model = document.querySelector('input[name="batch-model"]:checked')?.value || MODELS[0].id;
+
+      batchTotalCost = 0;
 
       document.getElementById('batch-setup').style.display = 'none';
       document.getElementById('batch-running').style.display = 'block';
@@ -1163,7 +1294,7 @@
       document.getElementById('batch-counter').textContent = 'Starting...';
       document.getElementById('batch-current').textContent = '';
 
-      const body = { replace_all: replaceAll };
+      const body = { replace_all: replaceAll, model };
       if (subject) body.subject = subject;
       if (year) body.year = year;
 
@@ -1219,9 +1350,15 @@
           document.getElementById('batch-current').textContent = `Generating: ${event.title}`;
           break;
 
-        case 'done':
-          addBatchLog('success', `${event.replaced ? 'Replaced' : 'Generated'}: ${event.title} (${event.duration_s}s)`);
+        case 'done': {
+          const cost = calcCost(event.usage, event.model || MODELS[0].id);
+          batchTotalCost += cost;
+          const cacheFlag = (event.usage.cache_read_input_tokens || 0) > 0 ? ' ⚡' : '';
+          addBatchLog('success', `${event.replaced ? 'Replaced' : 'Generated'}: ${event.title} — ${event.duration_s}s · <b>${fmtCost(cost)}</b>${cacheFlag}`);
+          // Update running total in counter
+          document.getElementById('batch-counter').title = `Running cost: ${fmtCost(batchTotalCost)}`;
           break;
+        }
 
         case 'skipped':
           addBatchLog('skip', `Skipped (exists): ${event.title}`);
@@ -1257,12 +1394,17 @@
       const hasErrors = summary.errors > 0;
       const div = document.getElementById('batch-summary');
       div.className = `batch-summary ${hasErrors ? 'has-errors' : ''}`;
+      const produced = (summary.generated || 0) + (summary.replaced || 0);
+      const avgCost = produced > 0 ? batchTotalCost / produced : 0;
       div.innerHTML = `
         <h3 style="margin:0 0 8px;">Batch Generation ${summary.cancelled ? 'Cancelled' : 'Complete'}</h3>
-        <p><b>${summary.generated}</b> booklets generated</p>
-        <p><b>${summary.replaced}</b> booklets replaced</p>
-        <p><b>${summary.skipped}</b> booklets skipped (already exist)</p>
+        <p><b>${summary.generated}</b> booklets generated &nbsp;·&nbsp; <b>${summary.replaced}</b> replaced &nbsp;·&nbsp; <b>${summary.skipped}</b> skipped</p>
         ${summary.errors > 0 ? `<p style="color:#c62828"><b>${summary.errors}</b> errors</p>` : ''}
+        ${produced > 0 ? `
+        <div style="margin-top:10px; padding:10px; background:rgba(0,0,0,0.05); border-radius:6px; font-size:14px;">
+          <b>Total API cost: ${fmtCost(batchTotalCost)}</b>
+          <span style="color:#666; margin-left:8px;">(avg ${fmtCost(avgCost)}/booklet)</span>
+        </div>` : ''}
       `;
 
       fetchLessons();

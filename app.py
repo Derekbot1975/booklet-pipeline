@@ -546,7 +546,7 @@ def api_generate_all():
                 else:
                     generated += 1
 
-                yield f"data: {json.dumps({'type': 'done', 'title': title, 'replaced': is_replace, 'duration_s': result['duration_s'], 'usage': result['usage']})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'title': title, 'replaced': is_replace, 'duration_s': result['duration_s'], 'usage': result['usage'], 'model': result['model']})}\n\n"
 
             except Exception as e:
                 errors += 1
