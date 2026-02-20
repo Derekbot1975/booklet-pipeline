@@ -54,19 +54,15 @@ def generate_diagram(description, output_path, size="1024x1024"):
         return None
 
     prompt = (
-        "A GCSE exam paper illustration for a UK science textbook (age 14-16). "
-        "Pure black and white line art only. Strictly monochrome: black ink on a "
-        "pure white background. High-contrast line drawing with zero shading. "
-        "Use thick, clean exterior lines and thin interior lines. "
-        "No shading, no gradients, no 3D effects, no shadows, no textures, "
-        "no greyscale fills, no decorative elements, no watermarks. "
-        "Simplified schematic — iconographic illustration style. "
-        "Minimalist design, low detail density, maximum clarity. "
-        "Isolated on a plain white background (no environment). "
-        "Leave space for labels — do NOT include any AI-generated text or labels. "
-        "Think: a clean stencil or a clear vector diagram from an exam paper. "
-        "Generous margins around the diagram. "
-        f"Subject: {description}"
+        f"Simple black-and-white science worksheet diagram of {description}. "
+        "Clean line drawing suitable for a GCSE exam paper. "
+        "Black outlines on white background. Every region has a white fill "
+        "with a clear black border — no solid black fills, no shading, "
+        "no grey tones, no gradients, no crosshatching, no textures. "
+        "Simple and clear enough for a student to label by hand. "
+        "Flat 2D front view. No text or labels anywhere in the image. "
+        "Only show the essential parts — maximum 5 or 6 distinct structures. "
+        "Plain white background with generous margins."
     )
 
     try:
@@ -75,6 +71,7 @@ def generate_diagram(description, output_path, size="1024x1024"):
             prompt=prompt,
             size=size,
             quality="standard",
+            style="natural",
             n=1,
         )
 

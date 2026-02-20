@@ -971,14 +971,20 @@ def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
     # Save markdown
     md_path = save_booklet_markdown(lesson, clean_content)
 
-    # Generate diagrams via DALL-E (if available)
+    # Generate diagrams via Claude SVG (preferred) or DALL-E (fallback)
     diagram_images = {}
     try:
-        from diagrams import generate_diagrams_for_booklet
+        from svg_diagrams import generate_diagrams_for_booklet as svg_generate
         out_dir = _build_output_dir(lesson)
-        diagram_images = generate_diagrams_for_booklet(clean_content, str(out_dir))
+        diagram_images = svg_generate(clean_content, str(out_dir))
     except Exception as e:
-        logger.warning(f"Diagram generation skipped: {e}")
+        logger.warning(f"SVG diagram generation failed, trying DALL-E: {e}")
+        try:
+            from diagrams import generate_diagrams_for_booklet as dalle_generate
+            out_dir = _build_output_dir(lesson)
+            diagram_images = dalle_generate(clean_content, str(out_dir))
+        except Exception as e2:
+            logger.warning(f"Diagram generation skipped: {e2}")
 
     # Convert to docx
     docx_path = markdown_to_docx(md_path, lesson=lesson, diagram_images=diagram_images)
