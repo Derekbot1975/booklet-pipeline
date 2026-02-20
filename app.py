@@ -3,6 +3,8 @@ Flask app for the booklet production pipeline.
 
 Browse parsed lessons, filter by subject/year/topic, view lesson details,
 generate booklets via Claude API, validate, and upload to Google Drive.
+
+Supports multiple courses via scheme-of-work upload.
 """
 
 import json
@@ -15,8 +17,8 @@ from pathlib import Path
 from threading import Lock
 
 from flask import Flask, Response, render_template, request, jsonify
-from parser import parse_scheme_of_work
 from prompt_generator import generate_master_prompt
+import courses
 import tracker
 
 app = Flask(__name__)
@@ -29,17 +31,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-XLSX_PATH = "/Users/derek/Downloads/AQA_Combined_Science_Trilogy_Scheme_of_Work.xlsx"
+# Directory for uploaded spreadsheets
+UPLOADS_DIR = Path(__file__).parent / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
 
-# Parse once at startup
-_data = None
+# Parsed data cache: { course_id: parsed_data_dict }
+_course_data = {}
+
+# Current active course
+_active_course_id = courses.get_default_course_id()
 
 
-def get_data():
-    global _data
-    if _data is None:
-        _data = parse_scheme_of_work(XLSX_PATH)
-    return _data
+def get_data(course_id=None):
+    """Get parsed data for a course, loading/parsing on first access."""
+    global _active_course_id
+    cid = course_id or _active_course_id
+
+    if cid not in _course_data:
+        config = courses.get_course(cid)
+        if not config:
+            raise ValueError(f"Course not found: {cid}")
+
+        # Use the generic parser for all courses
+        from generic_parser import parse_course
+        _course_data[cid] = parse_course(config)
+
+    return _course_data[cid]
+
+
+def get_active_course_config():
+    """Get the full config for the currently active course."""
+    return courses.get_course(_active_course_id)
 
 
 # --- Batch generation state ---
@@ -61,12 +83,158 @@ def index():
     topics = sorted(set(
         l["topic"] for l in data["booklet_lessons"] if l["topic"]
     ))
+    years = sorted(set(
+        l["year"] for l in data["booklet_lessons"]
+    ))
+    course_list = courses.list_courses()
+    active_config = get_active_course_config()
     return render_template(
         "index.html",
         stats=stats,
         subjects=subjects,
         topics=topics,
+        years=years,
+        courses=course_list,
+        active_course=active_config,
     )
+
+
+# ========================================================================
+# Course management API
+# ========================================================================
+
+@app.route("/api/courses")
+def api_courses():
+    return jsonify({
+        "courses": courses.list_courses(),
+        "active": _active_course_id,
+    })
+
+
+@app.route("/api/courses/switch", methods=["POST"])
+def api_switch_course():
+    global _active_course_id
+    body = request.get_json() or {}
+    course_id = body.get("course_id")
+    if not course_id:
+        return jsonify({"error": "course_id required"}), 400
+
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "Course not found"}), 404
+
+    _active_course_id = course_id
+    # Force re-parse on next access
+    _course_data.pop(course_id, None)
+
+    return jsonify({"active": course_id, "name": config["name"]})
+
+
+@app.route("/api/courses/<course_id>")
+def api_get_course(course_id):
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "Course not found"}), 404
+    return jsonify(config)
+
+
+@app.route("/api/courses/<course_id>", methods=["DELETE"])
+def api_delete_course(course_id):
+    try:
+        courses.delete_course(course_id)
+        _course_data.pop(course_id, None)
+        return jsonify({"deleted": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/courses/upload", methods=["POST"])
+def api_upload_spreadsheet():
+    """Upload a scheme of work spreadsheet and preview its structure."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    if not file.filename.endswith((".xlsx", ".xls")):
+        return jsonify({"error": "Only .xlsx or .xls files are supported"}), 400
+
+    # Save the uploaded file
+    safe_name = file.filename.replace(" ", "_")
+    save_path = UPLOADS_DIR / safe_name
+    file.save(str(save_path))
+
+    # Preview the spreadsheet
+    from generic_parser import preview_spreadsheet
+    try:
+        preview = preview_spreadsheet(str(save_path))
+    except Exception as e:
+        return jsonify({"error": f"Could not read spreadsheet: {e}"}), 400
+
+    return jsonify({
+        "filename": safe_name,
+        "path": str(save_path),
+        "preview": preview,
+    })
+
+
+@app.route("/api/courses/preview", methods=["POST"])
+def api_preview_spreadsheet():
+    """Preview an already-uploaded spreadsheet (or re-preview with different settings)."""
+    body = request.get_json() or {}
+    xlsx_path = body.get("xlsx_path")
+    if not xlsx_path:
+        return jsonify({"error": "xlsx_path required"}), 400
+
+    from generic_parser import preview_spreadsheet
+    try:
+        preview = preview_spreadsheet(xlsx_path)
+    except Exception as e:
+        return jsonify({"error": f"Could not read spreadsheet: {e}"}), 400
+
+    return jsonify({"preview": preview})
+
+
+@app.route("/api/courses/save", methods=["POST"])
+def api_save_course():
+    """Save a new course configuration after the user has mapped columns."""
+    body = request.get_json() or {}
+
+    required = ["name", "xlsx_path", "sheets", "col_map"]
+    for field in required:
+        if field not in body:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    config = {
+        "name": body["name"],
+        "exam_board": body.get("exam_board", ""),
+        "qualification": body.get("qualification", ""),
+        "key_stage": body.get("key_stage", ""),
+        "subjects": body.get("subjects", []),
+        "xlsx_path": body["xlsx_path"],
+        "sheets": body["sheets"],
+        "header_row": body.get("header_row", 1),
+        "col_map": body["col_map"],
+        "topic_folders": body.get("topic_folders", {}),
+        "subject_from_topic_prefix": body.get("subject_from_topic_prefix", {}),
+        "topic_code_pattern": body.get("topic_code_pattern", ""),
+        "fixed_subject": body.get("fixed_subject"),
+        "system_prompt_context": body.get("system_prompt_context", body["name"]),
+        "prior_knowledge_base": body.get(
+            "prior_knowledge_base",
+            f"Students have completed the relevant prior learning for this course."
+        ),
+    }
+
+    # If editing an existing course, keep its ID
+    if body.get("id"):
+        config["id"] = body["id"]
+
+    saved = courses.save_course(config)
+
+    # Clear cache so it re-parses
+    _course_data.pop(saved["id"], None)
+
+    return jsonify({"saved": True, "course": saved})
 
 
 # ========================================================================
@@ -126,7 +294,8 @@ def api_prompt(year, lesson_num):
     data = get_data()
     for l in data["booklet_lessons"]:
         if l["year"] == year and l["lesson_number"] == lesson_num:
-            prompt = generate_master_prompt(l)
+            config = get_active_course_config()
+            prompt = generate_master_prompt(l, course_config=config)
             return jsonify({"prompt": prompt, "lesson": l})
     return jsonify({"error": "Lesson not found"}), 404
 
@@ -140,8 +309,8 @@ def api_filtered_out():
 
 @app.route("/api/reload", methods=["POST"])
 def api_reload():
-    global _data
-    _data = None
+    global _course_data
+    _course_data.pop(_active_course_id, None)
     get_data()
     return jsonify({"status": "ok", "stats": get_data()["stats"]})
 
@@ -188,6 +357,7 @@ EXPORT_DIR = Path(__file__).parent / "prompts"
 def api_export_prompts():
     data = get_data()
     lessons = data["booklet_lessons"]
+    config = get_active_course_config()
 
     body = request.get_json() or {}
     subject = body.get("subject")
@@ -208,7 +378,7 @@ def api_export_prompts():
     EXPORT_DIR.mkdir(exist_ok=True)
     exported = []
     for l in lessons:
-        prompt = generate_master_prompt(l)
+        prompt = generate_master_prompt(l, course_config=config)
         subdir = EXPORT_DIR / (l["subject"] or "Unknown")
         subdir.mkdir(exist_ok=True)
         fname = f"L{l['lesson_number']:03d} - {l['title']}.txt"
@@ -258,10 +428,14 @@ def api_generate(year, lesson_num):
     model = body.get("model", "claude-sonnet-4-5-20250929")
     replace = body.get("replace", False)
 
-    prompt = generate_master_prompt(lesson)
+    config = get_active_course_config()
+    prompt = generate_master_prompt(lesson, course_config=config)
 
     try:
-        result = generate_and_save(lesson, prompt, model=model, replace=replace)
+        result = generate_and_save(
+            lesson, prompt, model=model, replace=replace,
+            course_config=config,
+        )
 
         if replace:
             logger.info(
@@ -304,6 +478,8 @@ def api_generate_all():
     year = body.get("year")
     replace_all = body.get("replace_all", False)
     model = body.get("model", "claude-sonnet-4-5-20250929")
+
+    config = get_active_course_config()
 
     lessons = list(data["booklet_lessons"])
     if subject:
@@ -354,9 +530,10 @@ def api_generate_all():
                     yield f"data: {json.dumps({'type': 'skipped', 'title': title, 'reason': 'exists'})}\n\n"
                     continue
 
-                prompt = generate_master_prompt(lesson)
+                prompt = generate_master_prompt(lesson, course_config=config)
                 result = generate_and_save(
-                    lesson, prompt, model=model, replace=True
+                    lesson, prompt, model=model, replace=True,
+                    course_config=config,
                 )
                 tracker.set_status(y, ln, "generated")
 

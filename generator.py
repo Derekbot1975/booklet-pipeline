@@ -33,8 +33,10 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 # SYSTEM PROMPT — comprehensive formatting instructions for Claude
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are a specialist educational content creator producing self-study
-booklets for AQA GCSE Combined Science: Trilogy (8464).
+DEFAULT_SYSTEM_PROMPT_CONTEXT = "AQA GCSE Combined Science: Trilogy (8464)"
+
+SYSTEM_PROMPT_TEMPLATE = """You are a specialist educational content creator producing self-study
+booklets for {course_context}.
 
 LANGUAGE: You MUST use UK English spellings throughout the entire booklet.
 Examples: organise (not organize), colour (not color), centre (not center),
@@ -113,6 +115,23 @@ Output the complete booklet in well-structured markdown with clear
 section headers using # for main sections and ## / ### for subsections."""
 
 
+def get_system_prompt(course_config=None):
+    """Build the system prompt, customised for the active course."""
+    if course_config:
+        context = course_config.get(
+            "system_prompt_context", DEFAULT_SYSTEM_PROMPT_CONTEXT
+        )
+    else:
+        context = DEFAULT_SYSTEM_PROMPT_CONTEXT
+    return SYSTEM_PROMPT_TEMPLATE.format(course_context=context)
+
+
+# Keep backwards-compatible reference for any existing imports
+SYSTEM_PROMPT = SYSTEM_PROMPT_TEMPLATE.format(
+    course_context=DEFAULT_SYSTEM_PROMPT_CONTEXT
+)
+
+
 # ---------------------------------------------------------------------------
 # Claude API
 # ---------------------------------------------------------------------------
@@ -127,13 +146,14 @@ def get_client():
     return anthropic.Anthropic(api_key=api_key)
 
 
-def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
+def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
+                     course_config=None):
     """
     Send a booklet generation request to Claude API.
 
     Uses prompt caching on the system prompt to save ~90% on input tokens
     across multiple booklet generations (the system prompt is identical
-    for all 230 booklets).
+    for all booklets in a course).
 
     Model selection: Sonnet 4.5 is the optimal choice — same price as
     Sonnet 4 ($3/$15 per MTok) but higher quality output. Haiku would
@@ -143,13 +163,15 @@ def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
     client = get_client()
     start = time.time()
 
+    system_prompt = get_system_prompt(course_config)
+
     message = client.messages.create(
         model=model,
         max_tokens=16000,
         system=[
             {
                 "type": "text",
-                "text": SYSTEM_PROMPT,
+                "text": system_prompt,
                 "cache_control": {"type": "ephemeral"},
             }
         ],
@@ -917,7 +939,7 @@ def convert_to_pdf(docx_path):
 # ---------------------------------------------------------------------------
 
 def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
-                      replace=False):
+                      replace=False, course_config=None):
     """
     Full pipeline: generate via API → sanitise → diagrams → docx → pdf.
 
@@ -926,6 +948,7 @@ def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
         prompt_text: the master prompt
         model: Claude model to use
         replace: if True, overwrite existing files
+        course_config: optional course config dict
 
     Returns dict with paths and metadata.
     """
@@ -938,7 +961,9 @@ def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
         )
 
     # Generate via Claude API
-    result = generate_booklet(lesson, prompt_text, model=model)
+    result = generate_booklet(
+        lesson, prompt_text, model=model, course_config=course_config
+    )
 
     # Sanitise the markdown
     clean_content = sanitize_markdown(result["content"])

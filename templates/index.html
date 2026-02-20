@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Booklet Pipeline — AQA Combined Science</title>
+  <title>Booklet Pipeline — {{ active_course.name if active_course else 'No Course' }}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
@@ -12,9 +12,10 @@
     .header h1 { font-size: 20px; font-weight: 600; }
     .header .stats { font-size: 13px; color: #86868b; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
     .stat-badge { background: #f5f5f7; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
-    .stat-badge.bio { color: #34c759; }
-    .stat-badge.chem { color: #ff9500; }
-    .stat-badge.phys { color: #007aff; }
+
+    .course-bar { background: #fff; border-bottom: 1px solid #d2d2d7; padding: 8px 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .course-bar select { padding: 4px 10px; border: 1px solid #d2d2d7; border-radius: 6px; font-size: 13px; }
+    .course-bar .course-label { color: #86868b; font-weight: 500; }
 
     .progress-bar-container { background: #fff; border-bottom: 1px solid #d2d2d7; padding: 8px 24px; }
     .progress-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #e5e5ea; }
@@ -32,7 +33,7 @@
     .toolbar input { flex: 1; min-width: 200px; }
     .toolbar select { min-width: 120px; }
 
-    .content { display: flex; height: calc(100vh - 170px); }
+    .content { display: flex; height: calc(100vh - 210px); }
 
     .lesson-list { width: 440px; overflow-y: auto; border-right: 1px solid #d2d2d7; background: #fff; flex-shrink: 0; }
     .lesson-item { padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.15s; display: flex; align-items: flex-start; gap: 10px; }
@@ -43,9 +44,7 @@
     .lesson-item .lesson-title { font-size: 14px; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lesson-item .lesson-meta { font-size: 12px; color: #86868b; margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
     .tag { padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; }
-    .tag-bio { background: #e8f8ed; color: #1b7a3d; }
-    .tag-chem { background: #fff3e0; color: #b36b00; }
-    .tag-phys { background: #e3f2fd; color: #0d47a1; }
+    .tag-subject { background: #e3f2fd; color: #0d47a1; }
     .tag-rp { background: #fce4ec; color: #c62828; }
     .tag-ht { background: #f3e5f5; color: #6a1b9a; }
 
@@ -105,6 +104,7 @@
     .modal-overlay.open { opacity: 1; pointer-events: auto; }
     .modal { background: #fff; border-radius: 16px; width: 600px; max-height: 80vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .modal.wide { width: 750px; }
+    .modal.extra-wide { width: 900px; }
     .modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: center; }
     .modal-header h2 { font-size: 18px; }
     .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #86868b; padding: 4px 8px; border-radius: 6px; }
@@ -127,6 +127,31 @@
     .batch-summary { padding: 16px; background: #e8f8ed; border-radius: 8px; margin-top: 12px; }
     .batch-summary.has-errors { background: #fff3e0; }
     .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 14px; }
+
+    /* Upload wizard */
+    .upload-step { display: none; }
+    .upload-step.active { display: block; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #86868b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px; }
+    .form-group input[type="file"] { padding: 6px; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; max-height: 250px; overflow: auto; display: block; }
+    .preview-table th, .preview-table td { border: 1px solid #e5e5ea; padding: 4px 8px; text-align: left; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+    .preview-table th { background: #f5f5f7; font-weight: 600; position: sticky; top: 0; }
+    .preview-table td { background: #fff; }
+    .col-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .col-selector .form-group { margin-bottom: 8px; }
+    .col-selector select { font-size: 13px; padding: 6px 8px; }
+    .step-indicator { display: flex; gap: 8px; margin-bottom: 16px; }
+    .step-dot { width: 32px; height: 4px; border-radius: 2px; background: #e5e5ea; }
+    .step-dot.active { background: #007aff; }
+    .step-dot.done { background: #34c759; }
+    .sheet-config { margin-top: 8px; border: 1px solid #e5e5ea; border-radius: 8px; padding: 12px; background: #fafafa; }
+    .sheet-config-row { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; font-size: 13px; }
+    .sheet-config-row input[type="checkbox"] { width: auto; }
+    .sheet-config-row input, .sheet-config-row select { width: auto; padding: 4px 8px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -134,13 +159,26 @@
     <h1>Booklet Pipeline</h1>
     <div class="stats">
       <span class="stat-badge">{{ stats.booklet_lessons }} booklets</span>
-      <span class="stat-badge bio">Bio: {{ stats.by_subject.get('Biology', 0) }}</span>
-      <span class="stat-badge chem">Chem: {{ stats.by_subject.get('Chemistry', 0) }}</span>
-      <span class="stat-badge phys">Phys: {{ stats.by_subject.get('Physics', 0) }}</span>
+      {% for subj, count in stats.by_subject.items() %}
+      <span class="stat-badge">{{ subj }}: {{ count }}</span>
+      {% endfor %}
       <button class="btn btn-success btn-sm" onclick="openBatchModal()">Generate All Booklets</button>
       <button class="btn btn-secondary btn-sm" onclick="exportPrompts()">Export All Prompts</button>
       <button class="btn btn-secondary btn-sm" onclick="openSettings()" id="settings-btn">Settings</button>
     </div>
+  </div>
+
+  <div class="course-bar">
+    <span class="course-label">Course:</span>
+    <select id="course-selector" onchange="switchCourse(this.value)">
+      {% for c in courses %}
+      <option value="{{ c.id }}" {{ 'selected' if c.id == active_course.id }}>
+        {{ c.name }}{% if c.exam_board %} ({{ c.exam_board }}){% endif %}
+      </option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="openUploadModal()">+ Add Course</button>
+    <button class="btn btn-secondary btn-sm" onclick="deleteCourse()" id="btn-delete-course" style="display:{{ 'none' if active_course.is_default else 'inline-flex' }}">Delete Course</button>
   </div>
 
   <div class="progress-bar-container">
@@ -161,9 +199,10 @@
       {% endfor %}
     </select>
     <select id="filter-year">
-      <option value="">Both Years</option>
-      <option value="10">Year 10</option>
-      <option value="11">Year 11</option>
+      <option value="">All Years</option>
+      {% for y in years %}
+      <option value="{{ y }}">Year {{ y }}</option>
+      {% endfor %}
     </select>
     <select id="filter-topic">
       <option value="">All Topics</option>
@@ -253,9 +292,10 @@
               {% endfor %}
             </select>
             <select id="batch-year" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;">
-              <option value="">Both Years</option>
-              <option value="10">Year 10</option>
-              <option value="11">Year 11</option>
+              <option value="">All Years</option>
+              {% for y in years %}
+              <option value="{{ y }}">Year {{ y }}</option>
+              {% endfor %}
             </select>
           </div>
           <div class="checkbox-row">
@@ -292,6 +332,103 @@
     </div>
   </div>
 
+  <!-- Upload / Add Course Modal -->
+  <div class="modal-overlay" id="upload-modal">
+    <div class="modal extra-wide">
+      <div class="modal-header">
+        <h2>Add New Course</h2>
+        <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="step-indicator" id="upload-steps">
+          <div class="step-dot active" data-step="1"></div>
+          <div class="step-dot" data-step="2"></div>
+          <div class="step-dot" data-step="3"></div>
+        </div>
+
+        <!-- Step 1: Upload file + course details -->
+        <div class="upload-step active" id="upload-step-1">
+          <h3 style="margin-bottom:12px; color:#1d1d1f; text-transform:none; letter-spacing:0;">Step 1: Upload Spreadsheet & Course Details</h3>
+          <div class="form-group">
+            <label>Scheme of Work Spreadsheet (.xlsx)</label>
+            <input type="file" id="upload-file" accept=".xlsx,.xls">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Course Name</label>
+              <input type="text" id="upload-name" placeholder="e.g. AQA Geography KS3">
+            </div>
+            <div class="form-group">
+              <label>Exam Board</label>
+              <input type="text" id="upload-exam-board" placeholder="e.g. AQA, Edexcel, OCR">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Key Stage</label>
+              <select id="upload-ks">
+                <option value="3">KS3</option>
+                <option value="4" selected>KS4</option>
+                <option value="5">KS5</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Qualification</label>
+              <input type="text" id="upload-qual" placeholder="e.g. GCSE, A-Level" value="GCSE">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Subject(s)</label>
+            <input type="text" id="upload-subjects" placeholder="e.g. Geography (comma-separate for multi-subject)">
+          </div>
+          <div id="upload-error" style="color:#c62828; font-size:13px; margin-top:8px;"></div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="uploadStep1()">Upload & Preview</button>
+            <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Select sheets + header row + preview data -->
+        <div class="upload-step" id="upload-step-2">
+          <h3 style="margin-bottom:12px; color:#1d1d1f; text-transform:none; letter-spacing:0;">Step 2: Select Sheets & Preview Data</h3>
+          <p style="font-size:13px; color:#86868b; margin-bottom:12px;">
+            Select the sheets that contain lesson data and set the header row for each.
+          </p>
+          <div id="sheet-config-area"></div>
+          <h3 style="margin-top:16px; margin-bottom:8px; color:#1d1d1f; text-transform:none; letter-spacing:0;">Data Preview</h3>
+          <select id="preview-sheet-select" onchange="showSheetPreview(this.value)" style="margin-bottom:8px; padding:4px 8px; border:1px solid #d2d2d7; border-radius:6px; font-size:13px;"></select>
+          <div id="preview-table-container" style="max-height:250px; overflow:auto; border:1px solid #e5e5ea; border-radius:8px;"></div>
+          <div class="actions">
+            <button class="btn btn-secondary" onclick="goToStep(1)">Back</button>
+            <button class="btn btn-primary" onclick="goToStep(3)">Next: Map Columns</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Column mapping -->
+        <div class="upload-step" id="upload-step-3">
+          <h3 style="margin-bottom:12px; color:#1d1d1f; text-transform:none; letter-spacing:0;">Step 3: Map Columns</h3>
+          <p style="font-size:13px; color:#86868b; margin-bottom:12px;">
+            Map each column in your spreadsheet to the correct field. Set unused fields to "Not mapped".
+          </p>
+          <div class="form-group">
+            <label>Header Row Number</label>
+            <input type="number" id="upload-header-row" value="1" min="1" max="20" style="width:80px;">
+          </div>
+          <div class="col-selector" id="col-mapper"></div>
+          <div class="form-group" style="margin-top:12px;">
+            <label>Fixed Subject (if all rows are the same subject)</label>
+            <input type="text" id="upload-fixed-subject" placeholder="Leave empty if subject varies per row">
+          </div>
+          <div id="save-error" style="color:#c62828; font-size:13px; margin-top:8px;"></div>
+          <div class="actions">
+            <button class="btn btn-secondary" onclick="goToStep(2)">Back</button>
+            <button class="btn btn-success" onclick="saveCourse()">Save Course</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
@@ -303,6 +440,10 @@
     let batchEventSource = null;
     let batchId = null;
 
+    // Upload wizard state
+    let uploadPreview = null;
+    let uploadFilePath = null;
+
     const STATUS_LABELS = {
       pending: 'Pending',
       generated: 'Generated',
@@ -311,8 +452,7 @@
     };
 
     function subjectTag(subject) {
-      const cls = subject === 'Biology' ? 'tag-bio' : subject === 'Chemistry' ? 'tag-chem' : 'tag-phys';
-      return `<span class="tag ${cls}">${subject}</span>`;
+      return `<span class="tag tag-subject">${subject}</span>`;
     }
 
     function showToast(msg) {
@@ -373,9 +513,9 @@
           <div class="lesson-item ${isActive ? 'active' : ''}" onclick="selectLesson(${l.year}, ${l.lesson_number})">
             <div class="status-dot ${statusCls}" title="${STATUS_LABELS[l.status] || 'Pending'}"></div>
             <div class="lesson-info">
-              <div class="lesson-num">Y${l.year} &middot; Wk ${l.week} &middot; L${String(l.lesson_number).padStart(3, '0')}</div>
+              <div class="lesson-num">Y${l.year} &middot; Wk ${l.week || '?'} &middot; L${String(l.lesson_number).padStart(3, '0')}</div>
               <div class="lesson-title">${l.title}</div>
-              <div class="lesson-meta">${tags.join('')}<span>${l.topic}</span></div>
+              <div class="lesson-meta">${tags.join('')}<span>${l.topic || ''}</span></div>
             </div>
           </div>
         `;
@@ -427,30 +567,27 @@
         </div>`
       ).join('');
 
+      // Build optional fields
+      let optionalHtml = '';
+      if (lesson.spec_content) optionalHtml += `<h3>Specification Content</h3><p>${lesson.spec_content}</p>`;
+      if (lesson.key_vocabulary) optionalHtml += `<h3>Key Vocabulary</h3><p>${lesson.key_vocabulary}</p>`;
+      if (lesson.required_practical) optionalHtml += `<h3>Required Practical</h3><p>${lesson.required_practical}</p>`;
+      if (lesson.ws_ms) optionalHtml += `<h3>WS / MS Skills</h3><p>${lesson.ws_ms}</p>`;
+      if (lesson.ht_only) optionalHtml += `<h3>HT Only Content</h3><p>${lesson.ht_only}</p>`;
+
       panel.innerHTML = `
         <div class="detail-card">
           <h2>${lesson.title}</h2>
           <div class="subtitle">
-            ${lesson.subject} &middot; ${lesson.topic} &middot; Year ${lesson.year} Lesson ${lesson.lesson_number}
+            ${lesson.subject || ''} &middot; ${lesson.topic || ''} &middot; Year ${lesson.year} Lesson ${lesson.lesson_number}
             &middot; ${lesson.filename}
           </div>
 
           <div class="status-workflow">${statusSteps}</div>
 
-          <h3>Specification Content</h3>
-          <p>${lesson.spec_content || 'None'}</p>
+          ${optionalHtml}
 
-          <h3>Key Vocabulary</h3>
-          <p>${lesson.key_vocabulary || 'None'}</p>
-
-          ${lesson.required_practical ? `<h3>Required Practical</h3><p>${lesson.required_practical}</p>` : ''}
-
-          <h3>WS / MS Skills</h3>
-          <p>${lesson.ws_ms || 'None'}</p>
-
-          ${lesson.ht_only ? `<h3>HT Only Content</h3><p>${lesson.ht_only}</p>` : ''}
-
-          <h3>Prior Lessons in ${lesson.subject} (${lesson.prior_lessons.length})</h3>
+          <h3>Prior Lessons in ${lesson.subject || 'Subject'} (${lesson.prior_lessons.length})</h3>
           ${priorHtml}
 
           <h3>Output Path</h3>
@@ -537,6 +674,313 @@
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(fetchLessons, 300);
     });
+
+    // ─── Course switching ───
+
+    async function switchCourse(courseId) {
+      showToast('Switching course...');
+      try {
+        const res = await fetch('/api/courses/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_id: courseId }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          showToast('Error: ' + data.error);
+          return;
+        }
+        // Reload the page to pick up new filters/stats
+        window.location.reload();
+      } catch(e) {
+        showToast('Error switching course: ' + e.message);
+      }
+    }
+
+    async function deleteCourse() {
+      const sel = document.getElementById('course-selector');
+      const courseId = sel.value;
+      if (!confirm(`Delete this course? This cannot be undone.`)) return;
+
+      try {
+        const res = await fetch(`/api/courses/${courseId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.error) {
+          showToast('Error: ' + data.error);
+          return;
+        }
+        showToast('Course deleted');
+        window.location.reload();
+      } catch(e) {
+        showToast('Error: ' + e.message);
+      }
+    }
+
+    // ─── Upload / Add Course wizard ───
+
+    function openUploadModal() {
+      document.getElementById('upload-modal').classList.add('open');
+      goToStep(1);
+      // Reset form
+      document.getElementById('upload-file').value = '';
+      document.getElementById('upload-name').value = '';
+      document.getElementById('upload-exam-board').value = '';
+      document.getElementById('upload-subjects').value = '';
+      document.getElementById('upload-error').textContent = '';
+      uploadPreview = null;
+      uploadFilePath = null;
+    }
+
+    function closeUploadModal() {
+      document.getElementById('upload-modal').classList.remove('open');
+    }
+
+    function goToStep(step) {
+      document.querySelectorAll('.upload-step').forEach(el => el.classList.remove('active'));
+      document.getElementById(`upload-step-${step}`).classList.add('active');
+      document.querySelectorAll('.step-dot').forEach(el => {
+        const s = parseInt(el.dataset.step);
+        el.className = 'step-dot' + (s === step ? ' active' : s < step ? ' done' : '');
+      });
+    }
+
+    async function uploadStep1() {
+      const fileInput = document.getElementById('upload-file');
+      const name = document.getElementById('upload-name').value.trim();
+      const errDiv = document.getElementById('upload-error');
+
+      if (!fileInput.files.length) {
+        errDiv.textContent = 'Please select a spreadsheet file.';
+        return;
+      }
+      if (!name) {
+        errDiv.textContent = 'Please enter a course name.';
+        return;
+      }
+      errDiv.textContent = '';
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      showToast('Uploading and previewing...');
+      try {
+        const res = await fetch('/api/courses/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.error) {
+          errDiv.textContent = data.error;
+          return;
+        }
+
+        uploadPreview = data.preview;
+        uploadFilePath = data.path;
+
+        // Build sheet config UI
+        buildSheetConfig(data.preview.sheet_names);
+        // Build preview dropdown
+        buildPreviewDropdown(data.preview);
+        // Show first sheet preview
+        if (data.preview.sheet_names.length > 0) {
+          showSheetPreview(data.preview.sheet_names[0]);
+        }
+
+        goToStep(2);
+      } catch(e) {
+        errDiv.textContent = 'Upload failed: ' + e.message;
+      }
+    }
+
+    function buildSheetConfig(sheetNames) {
+      const area = document.getElementById('sheet-config-area');
+      area.innerHTML = sheetNames.map((name, idx) => `
+        <div class="sheet-config-row">
+          <input type="checkbox" id="sheet-enable-${idx}" checked>
+          <label for="sheet-enable-${idx}" style="min-width:200px;">${name}</label>
+          <label style="font-size:12px; color:#86868b;">Year group:</label>
+          <input type="number" id="sheet-year-${idx}" value="${guessYear(name)}" min="1" max="13" style="width:60px;">
+        </div>
+      `).join('');
+    }
+
+    function guessYear(sheetName) {
+      // Try to guess the year group from the sheet name
+      const m = sheetName.match(/\b(\d{1,2})\b/);
+      if (m) return parseInt(m[1]);
+      return 10; // default
+    }
+
+    function buildPreviewDropdown(preview) {
+      const sel = document.getElementById('preview-sheet-select');
+      sel.innerHTML = preview.sheet_names.map(n => `<option value="${n}">${n}</option>`).join('');
+    }
+
+    function showSheetPreview(sheetName) {
+      const container = document.getElementById('preview-table-container');
+      const rows = uploadPreview.sheets[sheetName];
+      if (!rows || !rows.length) {
+        container.innerHTML = '<p style="padding:12px; color:#86868b;">No data found in this sheet.</p>';
+        return;
+      }
+
+      // Show row numbers + data
+      let html = '<table class="preview-table"><thead><tr><th>Row</th>';
+      const numCols = Math.max(...rows.map(r => r.length));
+      for (let c = 0; c < numCols; c++) {
+        html += `<th>Col ${c} (${String.fromCharCode(65 + c)})</th>`;
+      }
+      html += '</tr></thead><tbody>';
+      rows.forEach((row, idx) => {
+        html += `<tr><td>${idx + 1}</td>`;
+        for (let c = 0; c < numCols; c++) {
+          html += `<td>${row[c] !== undefined ? escapeHtml(row[c]) : ''}</td>`;
+        }
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+
+      // Also populate col mapper (step 3) based on first sheet preview
+      buildColMapper(rows, numCols);
+    }
+
+    function buildColMapper(rows, numCols) {
+      const mapper = document.getElementById('col-mapper');
+      const fields = [
+        { key: 'week', label: 'Week', required: false },
+        { key: 'lesson_num', label: 'Lesson Number', required: true },
+        { key: 'subject', label: 'Subject', required: false },
+        { key: 'topic', label: 'Topic', required: false },
+        { key: 'title', label: 'Lesson Title', required: true },
+        { key: 'spec_content', label: 'Spec Content', required: false },
+        { key: 'rp', label: 'Required Practical', required: false },
+        { key: 'key_vocabulary', label: 'Key Vocabulary', required: false },
+        { key: 'ws_ms', label: 'WS / MS Skills', required: false },
+        { key: 'ht_only', label: 'HT Only', required: false },
+      ];
+
+      // Try to find header row
+      const headerRow = rows[0] || [];
+
+      mapper.innerHTML = fields.map(f => {
+        const options = ['<option value="-1">Not mapped</option>'];
+        for (let c = 0; c < numCols; c++) {
+          const headerText = headerRow[c] || `Col ${c}`;
+          const selected = autoMatchCol(f.key, headerText) ? 'selected' : '';
+          options.push(`<option value="${c}" ${selected}>${String.fromCharCode(65 + c)}: ${escapeHtml(headerText)}</option>`);
+        }
+        return `
+          <div class="form-group">
+            <label>${f.label}${f.required ? ' *' : ''}</label>
+            <select id="col-${f.key}">${options.join('')}</select>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function autoMatchCol(fieldKey, headerText) {
+      const h = headerText.toLowerCase();
+      const matchers = {
+        week: ['week'],
+        lesson_num: ['lesson', 'lesson number', 'lesson no', 'les no', '#'],
+        subject: ['subject'],
+        topic: ['topic', 'unit'],
+        title: ['title', 'lesson title', 'name'],
+        spec_content: ['spec', 'specification', 'content', 'spec content'],
+        rp: ['rp', 'required practical', 'practical'],
+        key_vocabulary: ['vocab', 'vocabulary', 'key vocab'],
+        ws_ms: ['ws', 'ms', 'working scientifically', 'maths'],
+        ht_only: ['ht', 'higher', 'ht only'],
+      };
+      const keywords = matchers[fieldKey] || [];
+      return keywords.some(kw => h.includes(kw));
+    }
+
+    async function saveCourse() {
+      const errDiv = document.getElementById('save-error');
+      errDiv.textContent = '';
+
+      const name = document.getElementById('upload-name').value.trim();
+      const examBoard = document.getElementById('upload-exam-board').value.trim();
+      const ks = document.getElementById('upload-ks').value;
+      const qual = document.getElementById('upload-qual').value.trim();
+      const subjectsStr = document.getElementById('upload-subjects').value.trim();
+      const headerRow = parseInt(document.getElementById('upload-header-row').value) || 1;
+      const fixedSubject = document.getElementById('upload-fixed-subject').value.trim();
+
+      // Build col_map
+      const colFields = ['week', 'lesson_num', 'subject', 'topic', 'title', 'spec_content', 'rp', 'key_vocabulary', 'ws_ms', 'ht_only'];
+      const colMap = {};
+      for (const key of colFields) {
+        const sel = document.getElementById(`col-${key}`);
+        if (!sel) continue;
+        const val = parseInt(sel.value);
+        if (val >= 0) colMap[key] = val;
+      }
+
+      // Validate required columns
+      if (!('lesson_num' in colMap)) {
+        errDiv.textContent = 'Lesson Number column is required.';
+        return;
+      }
+      if (!('title' in colMap)) {
+        errDiv.textContent = 'Lesson Title column is required.';
+        return;
+      }
+
+      // Build sheets config
+      const sheetNames = uploadPreview.sheet_names;
+      const sheets = [];
+      sheetNames.forEach((sn, idx) => {
+        const enabled = document.getElementById(`sheet-enable-${idx}`);
+        if (enabled && enabled.checked) {
+          const yearInput = document.getElementById(`sheet-year-${idx}`);
+          sheets.push({
+            name: sn,
+            year: parseInt(yearInput.value) || 10,
+          });
+        }
+      });
+
+      if (sheets.length === 0) {
+        errDiv.textContent = 'Please select at least one sheet.';
+        return;
+      }
+
+      const subjects = subjectsStr ? subjectsStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+      const config = {
+        name,
+        exam_board: examBoard,
+        qualification: qual,
+        key_stage: parseInt(ks),
+        subjects,
+        xlsx_path: uploadFilePath,
+        sheets,
+        header_row: headerRow,
+        col_map: colMap,
+        fixed_subject: fixedSubject || null,
+        system_prompt_context: `${examBoard ? examBoard + ' ' : ''}${qual ? qual + ' ' : ''}${name}`,
+        prior_knowledge_base: `Students have completed the relevant prior learning for this ${qual || 'course'}.`,
+      };
+
+      showToast('Saving course...');
+      try {
+        const res = await fetch('/api/courses/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config),
+        });
+        const data = await res.json();
+        if (data.error) {
+          errDiv.textContent = data.error;
+          return;
+        }
+
+        // Switch to the new course
+        await switchCourse(data.course.id);
+      } catch(e) {
+        errDiv.textContent = 'Error saving: ' + e.message;
+      }
+    }
 
     // ─── Generate with duplicate check ───
 
@@ -862,6 +1306,9 @@
     });
     document.getElementById('batch-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('batch-modal')) closeBatchModal();
+    });
+    document.getElementById('upload-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('upload-modal')) closeUploadModal();
     });
 
     async function refreshConfigStatus() {

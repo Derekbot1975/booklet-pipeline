@@ -1,0 +1,71 @@
+{
+  "id": "aqa-combined-science",
+  "name": "AQA Combined Science: Trilogy",
+  "exam_board": "AQA",
+  "qualification": "GCSE",
+  "key_stage": 4,
+  "subjects": [
+    "Biology",
+    "Chemistry",
+    "Physics"
+  ],
+  "xlsx_path": "/Users/derek/Downloads/AQA_Combined_Science_Trilogy_Scheme_of_Work.xlsx",
+  "sheets": [
+    {
+      "name": "Year 10 Lessons",
+      "year": 10
+    },
+    {
+      "name": "Year 11 Lessons",
+      "year": 11
+    }
+  ],
+  "header_row": 4,
+  "col_map": {
+    "week": 0,
+    "lesson_num": 1,
+    "subject": 2,
+    "topic": 3,
+    "title": 4,
+    "spec_content": 5,
+    "rp": 6,
+    "key_vocabulary": 7,
+    "ws_ms": 8,
+    "ht_only": 9
+  },
+  "topic_folders": {
+    "B1": "B1 - Cell Biology",
+    "B2": "B2 - Organisation",
+    "B3": "B3 - Infection and Response",
+    "B4": "B4 - Bioenergetics",
+    "B5": "B5 - Homeostasis and Response",
+    "B6": "B6 - Inheritance Variation and Evolution",
+    "B7": "B7 - Ecology",
+    "C8": "C8 - Atomic Structure and Periodic Table",
+    "C9": "C9 - Bonding Structure and Properties",
+    "C10": "C10 - Quantitative Chemistry",
+    "C11": "C11 - Chemical Changes",
+    "C12": "C12 - Energy Changes",
+    "C13": "C13 - Rate and Extent of Chemical Change",
+    "C14": "C14 - Organic Chemistry",
+    "C15": "C15 - Chemical Analysis",
+    "C16": "C16 - Chemistry of the Atmosphere",
+    "C17": "C17 - Using Resources",
+    "P18": "P18 - Energy",
+    "P19": "P19 - Electricity",
+    "P20": "P20 - Particle Model of Matter",
+    "P21": "P21 - Atomic Structure",
+    "P22": "P22 - Forces",
+    "P23": "P23 - Waves",
+    "P24": "P24 - Magnetism and Electromagnetism"
+  },
+  "subject_from_topic_prefix": {
+    "B": "Biology",
+    "C": "Chemistry",
+    "P": "Physics"
+  },
+  "topic_code_pattern": "([BCP]\\d+)",
+  "system_prompt_context": "AQA GCSE Combined Science: Trilogy (8464)",
+  "prior_knowledge_base": "Students have completed standard KS3 science.",
+  "is_default": true
+}
