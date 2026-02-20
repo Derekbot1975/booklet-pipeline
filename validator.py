@@ -60,10 +60,10 @@ def validate_docx(docx_path):
 
     # ── Check 2: File size ──
     size_kb = docx_path.stat().st_size / 1024
-    size_ok = 5 < size_kb < 500  # increased upper limit for images
+    size_ok = 5 < size_kb < 5000  # increased upper limit for DALL-E images
     checks.append({
         "name": "file_size", "passed": size_ok,
-        "detail": f"File size: {size_kb:.1f} KB (expected 5-500 KB)",
+        "detail": f"File size: {size_kb:.1f} KB (expected 5-5000 KB)",
     })
     if not size_ok:
         warnings.append(f"Unusual file size: {size_kb:.1f} KB")
@@ -237,6 +237,36 @@ def validate_docx(docx_path):
         "detail": "Document header " + ("found" if has_header else "NOT found"),
     })
 
+    # ── Check 16: UK English spelling ──
+    us_spelling_found = _check_us_spellings(combined_text)
+    uk_ok = len(us_spelling_found) == 0
+    checks.append({
+        "name": "uk_english", "passed": uk_ok,
+        "detail": "UK English spelling " + (
+            "OK" if uk_ok
+            else f"— found US spellings: {', '.join(us_spelling_found[:5])}"
+        ),
+    })
+    if not uk_ok:
+        warnings.append(f"US English spellings detected: {', '.join(us_spelling_found[:10])}")
+
+    # ── Check 17: Application questions section exists ──
+    has_app_q = any(kw in combined_text for kw in [
+        "application question", "calculation question",
+    ])
+    checks.append({
+        "name": "has_application_questions", "passed": has_app_q,
+        "detail": "Application/Calculation Questions " + ("found" if has_app_q else "NOT found"),
+    })
+
+    # ── Check 18: Answer spacing after application questions ──
+    app_spacing_ok = _check_answer_spacing_section(doc, "application")
+    checks.append({
+        "name": "application_answer_spacing", "passed": app_spacing_ok,
+        "detail": "Application Questions answer spacing " +
+                  ("adequate" if app_spacing_ok else "— insufficient blank space between questions"),
+    })
+
     # ── Summary ──
     passed = sum(1 for c in checks if c["passed"])
     total = len(checks)
@@ -307,6 +337,94 @@ def _check_answer_spacing(doc):
                 spacing_after_question += 1
 
     return True
+
+
+def _check_answer_spacing_section(doc, section_keyword):
+    """
+    Check that after numbered items in a section containing `section_keyword`,
+    there are blank paragraphs for answer writing space.
+    Returns True if at least some spacing is found (or section not found).
+    """
+    in_section = False
+    found_question = False
+    spacing_after_question = 0
+    section_exists = False
+
+    for p in doc.paragraphs:
+        if p.style and p.style.name and p.style.name.startswith("Heading"):
+            if section_keyword in p.text.lower():
+                in_section = True
+                section_exists = True
+                found_question = False
+                continue
+            elif in_section:
+                in_section = False
+
+        if in_section:
+            style_name = (p.style.name if p.style and p.style.name else "").lower()
+            if "list number" in style_name:
+                if found_question and spacing_after_question < 2:
+                    return False
+                found_question = True
+                spacing_after_question = 0
+            elif found_question and not p.text.strip():
+                spacing_after_question += 1
+
+    # If section doesn't exist, pass the check (not applicable)
+    if not section_exists:
+        return True
+    return True
+
+
+# Common US spellings to detect (case-insensitive)
+_US_SPELLING_PATTERNS = [
+    (r"\borganize\b", "organize→organise"),
+    (r"\borganized\b", "organized→organised"),
+    (r"\brecognize\b", "recognize→recognise"),
+    (r"\brecognized\b", "recognized→recognised"),
+    (r"\bminimize\b", "minimize→minimise"),
+    (r"\bmaximize\b", "maximize→maximise"),
+    (r"\bspecialize\b", "specialize→specialise"),
+    (r"\bspecialized\b", "specialized→specialised"),
+    (r"\banalyze\b", "analyze→analyse"),
+    (r"\banalyzed\b", "analyzed→analysed"),
+    (r"\bsummarize\b", "summarize→summarise"),
+    (r"\bneutralize\b", "neutralize→neutralise"),
+    (r"\boxidize\b", "oxidize→oxidise"),
+    (r"\bionize\b", "ionize→ionise"),
+    (r"\bcolor\b", "color→colour"),
+    (r"\bcolors\b", "colors→colours"),
+    (r"\bfavor\b", "favor→favour"),
+    (r"\bbehavior\b", "behavior→behaviour"),
+    (r"\bcenter\b", "center→centre"),
+    (r"\bcenters\b", "centers→centres"),
+    (r"\bfiber\b", "fiber→fibre"),
+    (r"\bfibers\b", "fibers→fibres"),
+    (r"\bliter\b", "liter→litre"),
+    (r"\bmeter\b", "meter→metre"),
+    (r"\blabeled\b", "labeled→labelled"),
+    (r"\bmodeling\b", "modeling→modelling"),
+    (r"\bdefense\b", "defense→defence"),
+    (r"\bgray\b", "gray→grey"),
+    (r"\bsulfur\b", "sulfur→sulphur"),
+    (r"\bsulfate\b", "sulfate→sulphate"),
+    (r"\baluminum\b", "aluminum→aluminium"),
+    (r"\bhemoglobin\b", "hemoglobin→haemoglobin"),
+    (r"\bestrogen\b", "estrogen→oestrogen"),
+    (r"\bfetus\b", "fetus→foetus"),
+    (r"\besophagus\b", "esophagus→oesophagus"),
+    (r"\bdiarrhea\b", "diarrhea→diarrhoea"),
+    (r"\banemia\b", "anemia→anaemia"),
+]
+
+
+def _check_us_spellings(text):
+    """Check for US English spellings in text. Returns list of findings."""
+    findings = []
+    for pattern, label in _US_SPELLING_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            findings.append(label)
+    return findings
 
 
 def validate_markdown(md_path):

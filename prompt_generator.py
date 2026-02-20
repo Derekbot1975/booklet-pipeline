@@ -60,14 +60,18 @@ HT ONLY CONTENT: {ht_only}
 PRIOR KNOWLEDGE: {prior_knowledge}
 
 FORMATTING RULES (MUST follow — no exceptions):
+- Use UK English spellings throughout (e.g. organise, colour, centre, analyse, labelled, modelling, defence, fibre, travelled, minimise, recognise, sulphur, aluminium, haemoglobin)
 - NEVER use double asterisks (**) anywhere in your output
 - Knowledge Content sections: use bullet points (- prefix), NEVER numbered lists
 - Worked Examples: use bullet points (- prefix), NEVER numbered lists
-- Knowledge Check Questions: restart numbering at 1 for EACH Knowledge Chunk
-- Mark scheme numbering must restart per chunk to match question numbering
-- Drawing spaces: output [DRAWING SPACE: brief description] with NO other text inside
-- Topics to Revisit section: numbered 1, 2, 3 (three slots)
-- Targets for Next Lesson section: numbered 1, 2, 3 (three slots)
+- UNIVERSAL NUMBERING RESTART: Every distinct numbered section MUST start at 1. No section continues numbering from a previous section:
+  * Knowledge Check Questions: restart at 1 for EACH Knowledge Chunk
+  * Application Questions / Calculations: start at 1
+  * Topics to Revisit: numbered 1, 2, 3 (three slots)
+  * Targets for Next Lesson: numbered 1, 2, 3 (three slots)
+  * The ONLY exception is the Holistic Recall Starter (1-20 continuous)
+- Mark scheme numbering must match question numbering exactly — restart per chunk AND per section (Application Questions get their own mark scheme starting at 1)
+- Drawing spaces: output [DRAWING SPACE: detailed description for AI image generation] — include enough detail for DALL-E to create the diagram
 - Title block must be single-spaced (one line per field, no blank lines between them)
 - Key Vocabulary tables: Term | Definition format, no asterisks
 

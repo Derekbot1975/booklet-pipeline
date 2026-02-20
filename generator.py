@@ -36,6 +36,13 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 SYSTEM_PROMPT = """You are a specialist educational content creator producing self-study
 booklets for AQA GCSE Combined Science: Trilogy (8464).
 
+LANGUAGE: You MUST use UK English spellings throughout the entire booklet.
+Examples: organise (not organize), colour (not color), centre (not center),
+analyse (not analyze), labelled (not labeled), modelling (not modeling),
+specialise (not specialize), defence (not defense), fibre (not fiber),
+travelled (not traveled), minimise (not minimize), recognise (not recognize).
+No section is exempt from this rule.
+
 CRITICAL FORMATTING RULES — you MUST follow every one of these:
 
 1. NEVER use double asterisks (**) anywhere in your output.  All emphasis
@@ -56,12 +63,12 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    c. Section 2 — Key Vocabulary Table (Term | Definition)
    d. Section 3 — Knowledge Development (per chunk, see below)
    e. Section 4 — Drawing and Labelling (if applicable)
-   f. Section 5 — Calculations / Application Questions (if applicable)
+   f. Section 5 — Calculations / Application Questions (numbered starting at 1)
    g. Section 6 — Summary / Key Takeaways (bullet points)
-   h. Section 7 — Mark Scheme (numbering restarts per chunk — see below)
+   h. Section 7 — Mark Scheme (numbering restarts per section — see below)
    i. Section 8 — Self-Assessment / Progress Grid (RAG rating)
-   j. Section 9 — Topics to Revisit (numbered 1, 2, 3)
-   k. Section 10 — Targets for Next Lesson (numbered 1, 2, 3)
+   j. Section 9 — Topics to Revisit (numbered 1, 2, 3 only)
+   k. Section 10 — Targets for Next Lesson (numbered 1, 2, 3 only)
    l. Section 11 — Self-Assessment Actions (checkboxes)
    m. Section 12 — Document Info (version, date, page count)
 
@@ -74,17 +81,26 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    - Knowledge Check Questions — numbered starting at 1 for EACH chunk
      (Chunk 2 questions start at 1, NOT continuing from Chunk 1)
 
-4. MARK SCHEME (Section 7) — numbering MUST match the question numbering:
+4. UNIVERSAL NUMBERING RESTART RULE: Every distinct numbered section MUST
+   start its own numbering at 1.  No numbered section should EVER continue
+   numbering from a previous section.  This applies to:
+   - Knowledge Check Questions (restart at 1 per chunk)
+   - Application Questions (start at 1)
+   - Section 9: Topics to Revisit (1, 2, 3)
+   - Section 10: Targets for Next Lesson (1, 2, 3)
+   The ONLY exception is the Holistic Recall Starter (1-20 continuous).
+
+5. MARK SCHEME (Section 7) — numbering MUST match the question numbering:
    Knowledge Chunk 1 — Mark Scheme:  1, 2, 3 …
    Knowledge Chunk 2 — Mark Scheme:  1, 2, 3 …  (restart, do NOT continue)
+   Application Questions — Mark Scheme:  1, 2, 3 …  (restart, do NOT continue)
+   If Q3 asks about magnification, mark scheme entry 3 MUST be about magnification.
 
-5. DRAWING SPACES — wherever a diagram should go, output EXACTLY:
-   [DRAWING SPACE: brief description of what should be drawn]
-   Do NOT put any other text inside the drawing space marker.
-
-6. DIAGRAMS — describe what the diagram should show in the DRAWING SPACE
-   marker so our image generator can create it.  For the magnification
-   triangle, use: [DRAWING SPACE: Magnification triangle showing I = A x M]
+6. DRAWING SPACES — wherever a diagram should go, output EXACTLY:
+   [DRAWING SPACE: detailed description of what should be drawn]
+   Include enough detail for an AI image generator to create the diagram.
+   For the magnification triangle: [DRAWING SPACE: Magnification triangle showing I = A x M]
+   For microscope: [DRAWING SPACE: Labelled diagram of a light microscope showing eyepiece, objective lenses, stage, mirror, and focusing knobs]
 
 7. Use tables where appropriate (vocabulary, mark schemes, self-assessment).
 8. Clearly mark Higher-Tier-only content with [HT ONLY] tags.
@@ -172,7 +188,17 @@ def sanitize_markdown(content):
     """
     Post-process Claude's markdown to guarantee formatting compliance.
     Applied BEFORE docx conversion.
+
+    Handles:
+    - Stripping all ** markers
+    - Forcing bullets in knowledge_content / worked_example sections
+    - Restarting numbering in ALL numbered sections (universal rule)
+    - UK English spelling corrections
+    - Cleaning drawing space markers
     """
+    # --- UK English corrections (applied globally) ---
+    content = _fix_uk_english(content)
+
     lines = content.split("\n")
     result = []
     in_section = None  # track which section we're in
@@ -182,9 +208,17 @@ def sanitize_markdown(content):
         stripped = line.strip()
 
         # --- Detect current section from headings ---
+        # NOTE: Order matters! More specific matches (mark scheme, knowledge check)
+        # must come BEFORE broader matches (knowledge chunk) to handle headings
+        # like "Knowledge Chunk 2 — Mark Scheme" correctly.
         heading_lower = stripped.lstrip("#").strip().lower()
         if stripped.startswith("#"):
-            if any(kw in heading_lower for kw in [
+            if "mark scheme" in heading_lower:
+                # Must be checked before "knowledge chunk" since headings like
+                # "Knowledge Chunk 2 — Mark Scheme" contain both
+                in_section = "mark_scheme"
+                q_counter = 0
+            elif any(kw in heading_lower for kw in [
                 "knowledge content", "key components", "key points",
                 "knowledge development"
             ]):
@@ -195,14 +229,26 @@ def sanitize_markdown(content):
                 in_section = "knowledge_check"
                 q_counter = 0
             elif any(kw in heading_lower for kw in [
+                "application question", "calculation"
+            ]):
+                in_section = "application_questions"
+                q_counter = 0
+            elif any(kw in heading_lower for kw in [
+                "topics to revisit", "topics for revisit"
+            ]):
+                in_section = "topics_to_revisit"
+                q_counter = 0
+            elif any(kw in heading_lower for kw in [
+                "targets for next", "next lesson target"
+            ]):
+                in_section = "targets_next_lesson"
+                q_counter = 0
+            elif any(kw in heading_lower for kw in [
                 "knowledge chunk", "chunk "
             ]):
                 # New chunk resets question counter
                 q_counter = 0
                 in_section = None
-            elif "mark scheme" in heading_lower:
-                in_section = "mark_scheme"
-                q_counter = 0
             else:
                 in_section = None
 
@@ -215,15 +261,12 @@ def sanitize_markdown(content):
             if m:
                 line = f"{m.group(1)}- {m.group(2)}"
 
-        # --- Restart numbering for knowledge check questions ---
-        if in_section == "knowledge_check":
-            m = re.match(r"^(\s*)\d+\.\s+(.+)", line)
-            if m:
-                q_counter += 1
-                line = f"{m.group(1)}{q_counter}. {m.group(2)}"
-
-        # --- Restart numbering for mark scheme answers ---
-        if in_section == "mark_scheme":
+        # --- Universal numbering restart for all numbered sections ---
+        if in_section in (
+            "knowledge_check", "application_questions",
+            "topics_to_revisit", "targets_next_lesson",
+            "mark_scheme"
+        ):
             m = re.match(r"^(\s*)\d+\.\s+(.+)", line)
             if m:
                 q_counter += 1
@@ -242,6 +285,109 @@ def sanitize_markdown(content):
         result.append(line)
 
     return "\n".join(result)
+
+
+# Common US → UK English spelling substitutions for science booklets
+_UK_SPELLING_FIXES = [
+    # -ize → -ise
+    (r"\borganize\b", "organise"), (r"\bOrganize\b", "Organise"),
+    (r"\borganized\b", "organised"), (r"\bOrganized\b", "Organised"),
+    (r"\borganizing\b", "organising"), (r"\bOrganizing\b", "Organising"),
+    (r"\brecognize\b", "recognise"), (r"\bRecognize\b", "Recognise"),
+    (r"\brecognized\b", "recognised"), (r"\bRecognized\b", "Recognised"),
+    (r"\brecognizing\b", "recognising"), (r"\bRecognizing\b", "Recognising"),
+    (r"\bminimize\b", "minimise"), (r"\bMinimize\b", "Minimise"),
+    (r"\bminimized\b", "minimised"), (r"\bminimizing\b", "minimising"),
+    (r"\bmaximize\b", "maximise"), (r"\bMaximize\b", "Maximise"),
+    (r"\bmaximized\b", "maximised"), (r"\bmaximizing\b", "maximising"),
+    (r"\bspecialize\b", "specialise"), (r"\bSpecialize\b", "Specialise"),
+    (r"\bspecialized\b", "specialised"), (r"\bSpecialized\b", "Specialised"),
+    (r"\bspecializing\b", "specialising"),
+    (r"\butilize\b", "utilise"), (r"\bUtilize\b", "Utilise"),
+    (r"\butilized\b", "utilised"), (r"\butilizing\b", "utilising"),
+    (r"\banalyze\b", "analyse"), (r"\bAnalyze\b", "Analyse"),
+    (r"\banalyzed\b", "analysed"), (r"\banalyzing\b", "analysing"),
+    (r"\bsummarize\b", "summarise"), (r"\bSummarize\b", "Summarise"),
+    (r"\bsummarized\b", "summarised"), (r"\bsummarizing\b", "summarising"),
+    (r"\bmemorize\b", "memorise"), (r"\bMemorize\b", "Memorise"),
+    (r"\bmemorized\b", "memorised"), (r"\bmemorizing\b", "memorising"),
+    (r"\bvaporize\b", "vaporise"), (r"\bvaporization\b", "vaporisation"),
+    (r"\bneutralize\b", "neutralise"), (r"\bneutralized\b", "neutralised"),
+    (r"\bneutralizing\b", "neutralising"), (r"\bneutralization\b", "neutralisation"),
+    (r"\boxidize\b", "oxidise"), (r"\boxidized\b", "oxidised"),
+    (r"\boxidizing\b", "oxidising"),
+    (r"\bcauterize\b", "cauterise"), (r"\bcauterized\b", "cauterised"),
+    (r"\bionize\b", "ionise"), (r"\bionized\b", "ionised"),
+    (r"\bionizing\b", "ionising"), (r"\bionization\b", "ionisation"),
+    (r"\bpolymerize\b", "polymerise"), (r"\bpolymerized\b", "polymerised"),
+    (r"\bpolymerization\b", "polymerisation"),
+    (r"\bcatalyze\b", "catalyse"), (r"\bcatalyzed\b", "catalysed"),
+    (r"\bcatalyzing\b", "catalysing"),
+    (r"\bhydrolyze\b", "hydrolyse"), (r"\bhydrolyzed\b", "hydrolysed"),
+    (r"\bhydrolyzing\b", "hydrolysing"), (r"\bhydrolysis\b", "hydrolysis"),
+    (r"\bcustomize\b", "customise"), (r"\bcustomized\b", "customised"),
+    # -or → -our
+    (r"\bcolor\b", "colour"), (r"\bColor\b", "Colour"),
+    (r"\bcolors\b", "colours"), (r"\bColors\b", "Colours"),
+    (r"\bcolored\b", "coloured"),
+    (r"\bfavor\b", "favour"), (r"\bFavor\b", "Favour"),
+    (r"\bfavored\b", "favoured"), (r"\bfavoring\b", "favouring"),
+    (r"\bfavorite\b", "favourite"), (r"\bFavorite\b", "Favourite"),
+    (r"\bhonor\b", "honour"), (r"\bHonor\b", "Honour"),
+    (r"\bhumor\b", "humour"), (r"\bHumor\b", "Humour"),
+    (r"\bbehavior\b", "behaviour"), (r"\bBehavior\b", "Behaviour"),
+    (r"\bbehaviors\b", "behaviours"),
+    (r"\bneighbor\b", "neighbour"), (r"\bNeighbor\b", "Neighbour"),
+    (r"\bneighbors\b", "neighbours"),
+    (r"\blabor\b", "labour"), (r"\bLabor\b", "Labour"),
+    (r"\bvapor\b", "vapour"), (r"\bVapor\b", "Vapour"),
+    (r"\btumor\b", "tumour"), (r"\bTumor\b", "Tumour"),
+    (r"\bodor\b", "odour"), (r"\bOdor\b", "Odour"),
+    # -er → -re
+    (r"\bcenter\b", "centre"), (r"\bCenter\b", "Centre"),
+    (r"\bcenters\b", "centres"), (r"\bCenters\b", "Centres"),
+    (r"\bcentered\b", "centred"),
+    (r"\bfiber\b", "fibre"), (r"\bFiber\b", "Fibre"),
+    (r"\bfibers\b", "fibres"),
+    (r"\bliter\b", "litre"), (r"\bLiter\b", "Litre"),
+    (r"\bliters\b", "litres"),
+    (r"\bmeter\b", "metre"), (r"\bMeter\b", "Metre"),
+    (r"\bmeters\b", "metres"),
+    # -ed / -ing / -ling
+    (r"\blabeled\b", "labelled"), (r"\bLabeled\b", "Labelled"),
+    (r"\blabeling\b", "labelling"), (r"\bLabeling\b", "Labelling"),
+    (r"\bmodeled\b", "modelled"), (r"\bModeled\b", "Modelled"),
+    (r"\bmodeling\b", "modelling"), (r"\bModeling\b", "Modelling"),
+    (r"\btraveled\b", "travelled"), (r"\btraveling\b", "travelling"),
+    (r"\bcanceled\b", "cancelled"), (r"\bcanceling\b", "cancelling"),
+    # -ence / -ense
+    (r"\bdefense\b", "defence"), (r"\bDefense\b", "Defence"),
+    (r"\boffense\b", "offence"), (r"\bOffense\b", "Offence"),
+    (r"\blicense\b", "licence"), (r"\bLicense\b", "Licence"),
+    (r"\bpractice\b(?=\s+(?:the|this|that|a|an))", "practise"),  # verb form only
+    # Other common differences
+    (r"\bgray\b", "grey"), (r"\bGray\b", "Grey"),
+    (r"\bgrays\b", "greys"),
+    (r"\bfetus\b", "foetus"), (r"\bFetus\b", "Foetus"),
+    (r"\besophagus\b", "oesophagus"), (r"\bEsophagus\b", "Oesophagus"),
+    (r"\bestrogen\b", "oestrogen"), (r"\bEstrogen\b", "Oestrogen"),
+    (r"\bhemoglobin\b", "haemoglobin"), (r"\bHemoglobin\b", "Haemoglobin"),
+    (r"\banemia\b", "anaemia"), (r"\bAnemia\b", "Anaemia"),
+    (r"\bdiarrhea\b", "diarrhoea"), (r"\bDiarrhea\b", "Diarrhoea"),
+    (r"\bpediatrician\b", "paediatrician"),
+    (r"\bsulfur\b", "sulphur"), (r"\bSulfur\b", "Sulphur"),
+    (r"\bsulfate\b", "sulphate"), (r"\bSulfate\b", "Sulphate"),
+    (r"\bsulfide\b", "sulphide"), (r"\bSulfide\b", "Sulphide"),
+    (r"\bsulfuric\b", "sulphuric"), (r"\bSulfuric\b", "Sulphuric"),
+    (r"\baluminum\b", "aluminium"), (r"\bAluminum\b", "Aluminium"),
+]
+
+
+def _fix_uk_english(text):
+    """Apply UK English spelling corrections to text."""
+    for pattern, replacement in _UK_SPELLING_FIXES:
+        text = re.sub(pattern, replacement, text)
+    return text
 
 
 # ---------------------------------------------------------------------------
@@ -433,22 +579,21 @@ def markdown_to_docx(md_path, lesson=None, diagram_images=None):
         if ds_match:
             desc = (ds_match.group(1) or "").strip()
             # Check if we have a generated diagram image
-            img_path = None
-            if desc and diagram_images:
-                # Try exact match or fuzzy match
-                for key, path in diagram_images.items():
-                    if desc.lower() in key.lower() or key.lower() in desc.lower():
-                        img_path = path
-                        break
+            img_path = _find_diagram_image(desc, diagram_images)
 
             if img_path and Path(img_path).exists():
                 # Embed diagram image
-                doc.add_picture(str(img_path), width=Inches(5.5))
-                last_para = doc.paragraphs[-1]
-                last_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                try:
+                    doc.add_picture(str(img_path), width=Inches(5.5))
+                    last_para = doc.paragraphs[-1]
+                    last_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                except Exception as e:
+                    logger.warning(f"Failed to embed diagram: {e}")
+                    _add_drawing_box(doc, desc, error=True)
             else:
-                # Empty bordered box for drawing
-                _add_drawing_box(doc, desc)
+                # Empty bordered box with error placeholder if DALL-E was expected
+                has_openai = bool(os.getenv("OPENAI_API_KEY"))
+                _add_drawing_box(doc, desc, error=has_openai)
             i += 1
             continue
 
@@ -470,8 +615,8 @@ def markdown_to_docx(md_path, lesson=None, diagram_images=None):
             else:
                 p = doc.add_paragraph(style="List Number")
                 _add_formatted_text(p, num_match.group(2))
-                # Add answer space after knowledge check questions
-                if current_section == "knowledge_check":
+                # Add answer space after knowledge check and application questions
+                if current_section in ("knowledge_check", "application_questions"):
                     for _ in range(5):
                         blank = doc.add_paragraph()
                         blank.paragraph_format.space_before = Pt(0)
@@ -512,6 +657,12 @@ def _detect_section(heading_text):
         return "worked_example"
     if "knowledge check" in h:
         return "knowledge_check"
+    if any(kw in h for kw in ["application question", "calculation"]):
+        return "application_questions"
+    if any(kw in h for kw in ["topics to revisit", "topics for revisit"]):
+        return "topics_to_revisit"
+    if any(kw in h for kw in ["targets for next", "next lesson target"]):
+        return "targets_next_lesson"
     if "mark scheme" in h:
         return "mark_scheme"
     return None
@@ -541,8 +692,48 @@ def _render_table(doc, table_rows):
     doc.add_paragraph()  # spacing after table
 
 
-def _add_drawing_box(doc, description=""):
-    """Add an empty bordered box for drawing space."""
+def _find_diagram_image(description, diagram_images):
+    """
+    Find a matching diagram image for a drawing space description.
+
+    Tries multiple matching strategies:
+    1. Exact match
+    2. Case-insensitive containment (either direction)
+    3. Significant word overlap
+    """
+    if not description or not diagram_images:
+        return None
+
+    desc_lower = description.lower().strip()
+
+    # 1. Exact match
+    if description in diagram_images:
+        return diagram_images[description]
+
+    # 2. Case-insensitive containment
+    for key, path in diagram_images.items():
+        key_lower = key.lower().strip()
+        if desc_lower in key_lower or key_lower in desc_lower:
+            return path
+
+    # 3. Significant word overlap (at least 3 shared words)
+    desc_words = set(re.findall(r"\w{3,}", desc_lower))
+    for key, path in diagram_images.items():
+        key_words = set(re.findall(r"\w{3,}", key.lower()))
+        overlap = desc_words & key_words
+        if len(overlap) >= 3:
+            return path
+
+    return None
+
+
+def _add_drawing_box(doc, description="", error=False):
+    """
+    Add a bordered box for drawing space.
+
+    If error=True, adds a placeholder message indicating image generation
+    failed — the user should regenerate the booklet.
+    """
     # Use a 1-cell table with generous height
     table = doc.add_table(rows=1, cols=1)
     table.style = "Table Grid"
@@ -550,6 +741,16 @@ def _add_drawing_box(doc, description=""):
 
     cell = table.cell(0, 0)
     cell.text = ""
+
+    if error:
+        # Add error placeholder text
+        p = cell.paragraphs[0]
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run("[Image generation failed — regenerate this booklet]")
+        run.font.size = Pt(9)
+        run.font.color.rgb = RGBColor(180, 0, 0)
+        run.font.name = "Calibri"
+        run.italic = True
 
     # Set minimum height (~4 inches / ~10cm)
     tr = cell._tc.getparent()
