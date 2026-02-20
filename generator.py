@@ -863,21 +863,53 @@ def save_booklet_markdown(lesson, content):
 # ---------------------------------------------------------------------------
 
 def convert_to_pdf(docx_path):
-    """Convert a .docx to .pdf. Returns pdf path or None on failure."""
+    """
+    Convert a .docx to .pdf using LibreOffice.
+
+    Falls back to docx2pdf (which needs MS Word) if LibreOffice isn't available.
+    Returns pdf path or None on failure.
+    """
+    import shutil
+    import subprocess
+
+    docx_path = Path(docx_path)
+    pdf_path = docx_path.with_suffix(".pdf")
+
+    # Strategy 1: LibreOffice (free, works on Mac/Linux/Windows)
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if soffice:
+        try:
+            result = subprocess.run(
+                [
+                    soffice,
+                    "--headless",
+                    "--convert-to", "pdf",
+                    "--outdir", str(docx_path.parent),
+                    str(docx_path),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if pdf_path.exists():
+                logger.info(f"PDF created via LibreOffice: {pdf_path}")
+                return str(pdf_path)
+            else:
+                logger.warning(f"LibreOffice conversion produced no file. stderr: {result.stderr}")
+        except Exception as e:
+            logger.warning(f"LibreOffice conversion failed: {e}")
+
+    # Strategy 2: docx2pdf (needs MS Word on Mac)
     try:
         from docx2pdf import convert
-        docx_path = Path(docx_path)
-        pdf_path = docx_path.with_suffix(".pdf")
         convert(str(docx_path), str(pdf_path))
-        # Verify the file was actually created
         if pdf_path.exists():
             return str(pdf_path)
-        else:
-            logger.warning("PDF conversion ran but file was not created (Word/LibreOffice may not be installed)")
-            return None
     except Exception as e:
-        logger.warning(f"PDF conversion failed: {e}")
-        return None
+        logger.warning(f"docx2pdf conversion failed: {e}")
+
+    logger.warning("PDF conversion failed — install LibreOffice or MS Word")
+    return None
 
 
 # ---------------------------------------------------------------------------
