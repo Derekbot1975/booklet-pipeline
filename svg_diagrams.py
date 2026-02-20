@@ -2,10 +2,10 @@
 SVG diagram generation using Claude API.
 
 Replaces DALL-E with Claude-generated SVG code for educational diagrams.
-Produces scientifically accurate, clean line diagrams with proper labels,
-correct circuit symbols, and consistent styling across all booklets.
+Produces clean, minimal technical line drawings with no text or labels —
+students add their own labels by hand.
 
-Pipeline: Claude generates SVG code → cairosvg converts to PNG → embedded in docx.
+Pipeline: Claude generates SVG code → cairosvg/LibreOffice converts to PNG → embedded in docx.
 """
 
 import hashlib
@@ -23,56 +23,52 @@ logger = logging.getLogger(__name__)
 
 MAX_DIAGRAMS_PER_BOOKLET = 5  # cost control
 
-SVG_SYSTEM_PROMPT = """You are a specialist at creating clean, accurate SVG diagrams for UK GCSE science textbooks.
+SVG_SYSTEM_PROMPT = """You create simple, 2D black-and-white technical line drawings for GCSE exam papers.
 
-CRITICAL RULE — ONLY DRAW WHAT IS ASKED FOR:
-- The description tells you EXACTLY what to include. Do NOT add extra parts,
-  extra labels, extra detail, or extra structures beyond what is described.
-- If the description says "showing cell wall, nucleus, and vacuole" then draw
-  ONLY those three things. Do NOT add mitochondria, ribosomes, ER, etc.
-- If the description says "four chambers" then label ONLY the four chambers.
-  Do NOT add valves, vessels, or other structures unless explicitly requested.
-- Fewer labels is ALWAYS better. Only label what the description mentions.
+RULES — follow ALL of these with NO exceptions:
 
-RULES — you MUST follow ALL of these:
+1. OUTPUT: Return ONLY valid SVG code. Nothing else. No explanation, no markdown
+   code fences. Start with <svg and end with </svg>.
 
-1. OUTPUT: Return ONLY valid SVG code. No explanation, no markdown, no code fences.
-   Start with <svg and end with </svg>.
+2. CANVAS: viewBox="0 0 800 600". The entire diagram MUST fit inside this area
+   with at least 40px padding on all sides. Nothing may extend beyond the viewBox.
 
-2. CANVAS: Use viewBox="0 0 800 600" (landscape) or viewBox="0 0 600 800" (portrait).
-   Choose whichever orientation suits the subject best.
+3. STYLE — this is a technical line drawing, NOT an illustration:
+   - Thin black outlines ONLY (stroke-width: 1.5px)
+   - Fill: white (#ffffff) for ALL enclosed shapes — no grey, no colour, no patterns
+   - Solid white background
+   - NO shading, NO gradients, NO 3D effects, NO textures, NO shadows
+   - NO decorative elements, NO borders around the diagram
+   - High contrast: black lines on pure white
 
-3. STYLE:
-   - Black outlines on white background ONLY
-   - Stroke width: 2px for main outlines, 1px for internal detail
-   - Fill: white (#ffffff) for all enclosed regions — NO grey, NO colour
-   - Font: Arial or sans-serif, 13px for labels, 11px for secondary text
-   - All text must be horizontal and readable
+4. NO TEXT OR LABELS:
+   - Do NOT include ANY text, letters, numbers, labels, or annotations
+   - Do NOT include leader lines or label lines
+   - The diagram is ONLY shapes and lines — students will add their own labels
+   - The ONLY exception: single letters inside circuit symbols (A for ammeter,
+     V for voltmeter) as these are part of the BSI symbol itself
 
-4. LABELS:
-   - ONLY label the parts explicitly mentioned in the description
-   - Add clear text labels with leader lines (thin black lines from label to part)
-   - Labels should be outside the diagram where possible
-
-5. ACCURACY:
-   - Diagrams MUST be scientifically accurate for the parts shown
-   - Circuit diagrams: use correct BSI circuit symbols (cell = two parallel lines
-     long/short, resistor = rectangle, lamp = circle with X, ammeter = circle with A,
-     voltmeter = circle with V, switch = break in line with dot)
-   - Biology: correct proportions and structures
-   - Chemistry: correct molecular representations
-   - Physics: correct force arrows, ray diagrams, etc.
+5. CONTENT — draw ONLY what is described:
+   - If the description says "cell wall, nucleus, and vacuole" draw ONLY those three
+   - Do NOT add extra structures, organelles, vessels, or parts not mentioned
+   - Do NOT add anything "for completeness" — only what is explicitly asked for
 
 6. SIMPLICITY:
-   - ONLY include structures and labels mentioned in the description
-   - Clean, uncluttered layout with generous spacing
-   - No decorative elements, no borders, no backgrounds
-   - Think: a simple, clear exam paper diagram — not a detailed textbook illustration
+   - Minimalist style — fewest possible lines to represent each structure
+   - Clean, uncluttered layout with generous spacing between parts
+   - Each structure should be clearly distinct and separate from others
+   - Think: the simplest possible diagram a teacher would draw on a whiteboard
 
-7. ARROWS: Use proper arrowheads defined in <defs><marker>. Direction arrows should
-   be clear and distinct from leader lines.
+7. ACCURACY:
+   - Scientifically correct shapes and proportions for what IS shown
+   - Circuit diagrams: correct BSI symbols (cell = two parallel lines long/short,
+     resistor = rectangle, lamp = circle with X, ammeter = circle with A,
+     voltmeter = circle with V, switch = break in line with dot)
 
-8. NO external images, NO embedded raster data, NO href links."""
+8. ARROWS: If direction arrows are needed, use simple triangle arrowheads defined
+   in <defs><marker>. Keep arrows thin and clean.
+
+9. NO external images, NO embedded raster data, NO href links, NO <image> tags."""
 
 
 def get_claude_client():
@@ -105,11 +101,10 @@ def generate_svg_diagram(description, output_path):
         return None
 
     prompt = (
-        f"Create an SVG diagram of: {description}\n\n"
-        "IMPORTANT: Only draw and label the parts mentioned above. "
-        "Do NOT add any extra structures, labels, or detail beyond "
-        "what is described. Keep it simple — this is for a student worksheet, "
-        "not a medical textbook. It will be printed at 4 inches wide."
+        f"A simple, 2D black-and-white technical line drawing of: {description}\n\n"
+        "Minimalist style, thin black outlines, no shading, no 3D effects, "
+        "no textures, solid white background. Professional GCSE exam paper "
+        "diagram style. High contrast. NO text or labels of any kind."
     )
 
     try:
@@ -136,6 +131,9 @@ def generate_svg_diagram(description, output_path):
         if not svg_content:
             logger.warning(f"Claude returned no valid SVG for: {description}")
             return None
+
+        # Post-process: strip any text elements that slipped through
+        svg_content = _strip_text_elements(svg_content)
 
         # Save SVG
         output_path = Path(output_path)
@@ -175,6 +173,25 @@ def _extract_svg(text):
         return text
 
     return None
+
+
+def _strip_text_elements(svg_content):
+    """
+    Remove any <text> elements from SVG as a safety net.
+
+    Preserves text inside circuit symbols (single letter like A or V)
+    by only stripping text elements with more than 1 character of content.
+    """
+    # Remove <text> elements with content longer than 1 char
+    # This keeps "A" in ammeter circles but strips "Ammeter", "Cell wall" etc.
+    svg_content = re.sub(
+        r"<text[^>]*>[^<]{2,}</text>",
+        "",
+        svg_content,
+    )
+    # Also remove any standalone <line> elements that look like leader lines
+    # (lines that end near where text was — heuristic: very thin lines)
+    return svg_content
 
 
 def _svg_to_png(svg_path, png_path, width=1200):
