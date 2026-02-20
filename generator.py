@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 import anthropic
 
-load_dotenv()
+load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
 
