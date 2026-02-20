@@ -25,6 +25,15 @@ MAX_DIAGRAMS_PER_BOOKLET = 5  # cost control
 
 SVG_SYSTEM_PROMPT = """You are a specialist at creating clean, accurate SVG diagrams for UK GCSE science textbooks.
 
+CRITICAL RULE — ONLY DRAW WHAT IS ASKED FOR:
+- The description tells you EXACTLY what to include. Do NOT add extra parts,
+  extra labels, extra detail, or extra structures beyond what is described.
+- If the description says "showing cell wall, nucleus, and vacuole" then draw
+  ONLY those three things. Do NOT add mitochondria, ribosomes, ER, etc.
+- If the description says "four chambers" then label ONLY the four chambers.
+  Do NOT add valves, vessels, or other structures unless explicitly requested.
+- Fewer labels is ALWAYS better. Only label what the description mentions.
+
 RULES — you MUST follow ALL of these:
 
 1. OUTPUT: Return ONLY valid SVG code. No explanation, no markdown, no code fences.
@@ -41,12 +50,12 @@ RULES — you MUST follow ALL of these:
    - All text must be horizontal and readable
 
 4. LABELS:
+   - ONLY label the parts explicitly mentioned in the description
    - Add clear text labels with leader lines (thin black lines from label to part)
    - Labels should be outside the diagram where possible
-   - Use proper scientific terminology appropriate for GCSE level
 
 5. ACCURACY:
-   - Diagrams MUST be scientifically accurate
+   - Diagrams MUST be scientifically accurate for the parts shown
    - Circuit diagrams: use correct BSI circuit symbols (cell = two parallel lines
      long/short, resistor = rectangle, lamp = circle with X, ammeter = circle with A,
      voltmeter = circle with V, switch = break in line with dot)
@@ -55,10 +64,10 @@ RULES — you MUST follow ALL of these:
    - Physics: correct force arrows, ray diagrams, etc.
 
 6. SIMPLICITY:
-   - Maximum 6-8 labelled parts per diagram
+   - ONLY include structures and labels mentioned in the description
    - Clean, uncluttered layout with generous spacing
    - No decorative elements, no borders, no backgrounds
-   - Think: what would appear on a GCSE exam paper
+   - Think: a simple, clear exam paper diagram — not a detailed textbook illustration
 
 7. ARROWS: Use proper arrowheads defined in <defs><marker>. Direction arrows should
    be clear and distinct from leader lines.
@@ -97,9 +106,10 @@ def generate_svg_diagram(description, output_path):
 
     prompt = (
         f"Create an SVG diagram of: {description}\n\n"
-        "This is for a UK GCSE science self-study booklet. "
-        "The diagram will be printed in black and white at approximately "
-        "4 inches wide in a Word document. Make it clear and simple."
+        "IMPORTANT: Only draw and label the parts mentioned above. "
+        "Do NOT add any extra structures, labels, or detail beyond "
+        "what is described. Keep it simple — this is for a student worksheet, "
+        "not a medical textbook. It will be printed at 4 inches wide."
     )
 
     try:
