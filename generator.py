@@ -110,14 +110,31 @@ def get_client():
 
 
 def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
-    """Send a booklet generation request to Claude API."""
+    """
+    Send a booklet generation request to Claude API.
+
+    Uses prompt caching on the system prompt to save ~90% on input tokens
+    across multiple booklet generations (the system prompt is identical
+    for all 230 booklets).
+
+    Model selection: Sonnet 4.5 is the optimal choice — same price as
+    Sonnet 4 ($3/$15 per MTok) but higher quality output. Haiku would
+    risk lower quality on complex structured content. Opus is overkill
+    for templated generation.
+    """
     client = get_client()
     start = time.time()
 
     message = client.messages.create(
         model=model,
         max_tokens=16000,
-        system=SYSTEM_PROMPT,
+        system=[
+            {
+                "type": "text",
+                "text": SYSTEM_PROMPT,
+                "cache_control": {"type": "ephemeral"},
+            }
+        ],
         messages=[{"role": "user", "content": prompt_text}],
     )
 
@@ -127,12 +144,20 @@ def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
         if block.type == "text":
             content += block.text
 
+    # Extract cache performance info
+    usage = {
+        "input_tokens": message.usage.input_tokens,
+        "output_tokens": message.usage.output_tokens,
+    }
+    # Include cache hit info if available
+    if hasattr(message.usage, "cache_creation_input_tokens"):
+        usage["cache_creation_input_tokens"] = message.usage.cache_creation_input_tokens
+    if hasattr(message.usage, "cache_read_input_tokens"):
+        usage["cache_read_input_tokens"] = message.usage.cache_read_input_tokens
+
     return {
         "content": content,
-        "usage": {
-            "input_tokens": message.usage.input_tokens,
-            "output_tokens": message.usage.output_tokens,
-        },
+        "usage": usage,
         "model": message.model,
         "duration_s": round(duration, 1),
         "stop_reason": message.stop_reason,
