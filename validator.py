@@ -60,7 +60,7 @@ def validate_docx(docx_path):
 
     # ── Check 2: File size ──
     size_kb = docx_path.stat().st_size / 1024
-    size_ok = 5 < size_kb < 10000  # generous limit for embedded DALL-E images
+    size_ok = 5 < size_kb < 10000
     checks.append({
         "name": "file_size", "passed": size_ok,
         "detail": f"File size: {size_kb:.1f} KB (expected 5-10000 KB)",

@@ -686,8 +686,6 @@ def api_config():
     load_dotenv()
     return jsonify({
         "anthropic_key": bool(os.getenv("ANTHROPIC_API_KEY")),
-        "openai_key": bool(os.getenv("OPENAI_API_KEY") and
-                           not os.getenv("OPENAI_API_KEY", "").startswith("sk-...")),
         "gdrive_folder": bool(os.getenv("GDRIVE_ROOT_FOLDER_ID")),
         "gdrive_secrets": Path(
             os.getenv("GOOGLE_CLIENT_SECRETS_FILE", "client_secret.json")

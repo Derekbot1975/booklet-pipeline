@@ -106,6 +106,5 @@ def _get_formatting_rules():
   * Targets for Next Lesson: numbered 1, 2, 3 (three slots)
   * The ONLY exception is the Holistic Recall Starter (1-20 continuous)
 - Mark scheme numbering must match question numbering exactly — restart per chunk AND per section (Application Questions get their own mark scheme starting at 1)
-- Drawing spaces: output [DRAWING SPACE: detailed description for AI image generation] — include enough detail for DALL-E to create the diagram
 - Title block must be single-spaced (one line per field, no blank lines between them)
 - Key Vocabulary tables: Term | Definition format, no asterisks"""

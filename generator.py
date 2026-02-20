@@ -3,7 +3,7 @@ Claude API integration for automated booklet generation.
 
 Sends the master prompt to Claude and receives the generated booklet content.
 Includes markdown sanitisation, .docx conversion with full formatting,
-DALL-E diagram integration, and PDF export.
+and PDF export.
 """
 
 import logging
@@ -18,7 +18,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Inches, Pt, RGBColor
+from docx.shared import Cm, Pt, RGBColor
 from dotenv import load_dotenv
 
 import anthropic
@@ -100,16 +100,10 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    Application Questions — Mark Scheme:  1, 2, 3 …  (restart, do NOT continue)
    If Q3 asks about magnification, mark scheme entry 3 MUST be about magnification.
 
-6. DRAWING SPACES — wherever a diagram should go, output EXACTLY:
-   [DRAWING SPACE: detailed description of what should be drawn]
-   Include enough detail for an AI image generator to create the diagram.
-   For the magnification triangle: [DRAWING SPACE: Magnification triangle showing I = A x M]
-   For microscope: [DRAWING SPACE: Labelled diagram of a light microscope showing eyepiece, objective lenses, stage, mirror, and focusing knobs]
-
-7. Use tables where appropriate (vocabulary, mark schemes, self-assessment).
-8. Clearly mark Higher-Tier-only content with [HT ONLY] tags.
-9. Target both Foundation and Higher tier.
-10. Assume standard KS3 prior knowledge plus content from preceding lessons.
+6. Use tables where appropriate (vocabulary, mark schemes, self-assessment).
+7. Clearly mark Higher-Tier-only content with [HT ONLY] tags.
+8. Target both Foundation and Higher tier.
+9. Assume standard KS3 prior knowledge plus content from preceding lessons.
 
 Output the complete booklet in well-structured markdown with clear
 section headers using # for main sections and ## / ### for subsections."""
@@ -218,7 +212,7 @@ def sanitize_markdown(content):
     - Forcing bullets in knowledge_content / worked_example sections
     - Restarting numbering in ALL numbered sections (universal rule)
     - UK English spelling corrections
-    - Cleaning drawing space markers
+    - Stripping any residual [DRAWING SPACE] markers
     """
     # --- UK English corrections (applied globally) ---
     content = _fix_uk_english(content)
@@ -296,17 +290,9 @@ def sanitize_markdown(content):
                 q_counter += 1
                 line = f"{m.group(1)}{q_counter}. {m.group(2)}"
 
-        # --- Clean drawing space markers ---
-        # Keep the description for diagram generation, but standardise format
-        m = re.match(r"^\[DRAWING\s+SPACE[:\s]*(.*)?\]$", stripped, re.IGNORECASE)
-        if m:
-            desc = (m.group(1) or "").strip().rstrip("]")
-            if desc:
-                line = f"[DRAWING SPACE: {desc}]"
-            else:
-                line = "[DRAWING SPACE]"
-
-        result.append(line)
+        # --- Strip any [DRAWING SPACE] markers (diagrams removed) ---
+        if not re.match(r"^\[DRAWING\s+SPACE", stripped, re.IGNORECASE):
+            result.append(line)
 
     return "\n".join(result)
 
@@ -450,18 +436,16 @@ def _add_page_number(paragraph):
     run3._r.append(fldChar2)
 
 
-def markdown_to_docx(md_path, lesson=None, diagram_images=None):
+def markdown_to_docx(md_path, lesson=None):
     """
     Convert a markdown booklet to .docx with full formatting.
 
     Args:
         md_path: path to the .md file
         lesson: lesson dict (optional, for header/footer)
-        diagram_images: dict mapping drawing-space descriptions to image paths
     """
     md_path = Path(md_path)
     content = md_path.read_text()
-    diagram_images = diagram_images or {}
 
     doc = Document()
 
@@ -596,31 +580,6 @@ def markdown_to_docx(md_path, lesson=None, diagram_images=None):
             i += 1
             continue
 
-        # --- Drawing space ---
-        ds_match = re.match(
-            r"^\[DRAWING\s+SPACE(?:[:\s]*(.+?))?\]$", stripped, re.IGNORECASE
-        )
-        if ds_match:
-            desc = (ds_match.group(1) or "").strip()
-            # Check if we have a generated diagram image
-            img_path = _find_diagram_image(desc, diagram_images)
-
-            if img_path and Path(img_path).exists():
-                # Embed diagram image — 4 inches wide to fit within margins
-                try:
-                    doc.add_picture(str(img_path), width=Inches(4.0))
-                    last_para = doc.paragraphs[-1]
-                    last_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                except Exception as e:
-                    logger.warning(f"Failed to embed diagram: {e}")
-                    _add_drawing_box(doc, desc, error=True)
-            else:
-                # Empty bordered box with error placeholder if DALL-E was expected
-                has_openai = bool(os.getenv("OPENAI_API_KEY"))
-                _add_drawing_box(doc, desc, error=has_openai)
-            i += 1
-            continue
-
         # --- Bullet points ---
         if stripped.startswith("- ") or stripped.startswith("* "):
             text = stripped[2:]
@@ -714,84 +673,6 @@ def _render_table(doc, table_rows):
                         run.font.size = Pt(11)
 
     doc.add_paragraph()  # spacing after table
-
-
-def _find_diagram_image(description, diagram_images):
-    """
-    Find a matching diagram image for a drawing space description.
-
-    Tries multiple matching strategies:
-    1. Exact match
-    2. Case-insensitive containment (either direction)
-    3. Significant word overlap
-    """
-    if not description or not diagram_images:
-        return None
-
-    desc_lower = description.lower().strip()
-
-    # 1. Exact match
-    if description in diagram_images:
-        return diagram_images[description]
-
-    # 2. Case-insensitive containment
-    for key, path in diagram_images.items():
-        key_lower = key.lower().strip()
-        if desc_lower in key_lower or key_lower in desc_lower:
-            return path
-
-    # 3. Significant word overlap (at least 3 shared words)
-    desc_words = set(re.findall(r"\w{3,}", desc_lower))
-    for key, path in diagram_images.items():
-        key_words = set(re.findall(r"\w{3,}", key.lower()))
-        overlap = desc_words & key_words
-        if len(overlap) >= 3:
-            return path
-
-    return None
-
-
-def _add_drawing_box(doc, description="", error=False):
-    """
-    Add a bordered box for drawing space.
-
-    If error=True, adds a placeholder message indicating image generation
-    failed — the user should regenerate the booklet.
-    """
-    # Use a 1-cell table with generous height
-    table = doc.add_table(rows=1, cols=1)
-    table.style = "Table Grid"
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-
-    cell = table.cell(0, 0)
-    cell.text = ""
-
-    if error:
-        # Add error placeholder text
-        p = cell.paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = p.add_run("[Image generation failed — regenerate this booklet]")
-        run.font.size = Pt(9)
-        run.font.color.rgb = RGBColor(180, 0, 0)
-        run.font.name = "Calibri"
-        run.italic = True
-
-    # Set minimum height (~4 inches / ~10cm)
-    tr = cell._tc.getparent()
-    trPr = tr.get_or_add_trPr()
-    trHeight = OxmlElement("w:trHeight")
-    trHeight.set(qn("w:val"), "5760")  # ~4 inches in twips
-    trHeight.set(qn("w:hRule"), "atLeast")
-    trPr.append(trHeight)
-
-    # Set cell width to full page width
-    tcPr = cell._tc.get_or_add_tcPr()
-    tcW = OxmlElement("w:tcW")
-    tcW.set(qn("w:w"), "9360")  # ~6.5 inches
-    tcW.set(qn("w:type"), "dxa")
-    tcPr.append(tcW)
-
-    doc.add_paragraph()  # spacing after box
 
 
 def _add_formatted_text(paragraph, text):
@@ -941,7 +822,7 @@ def convert_to_pdf(docx_path):
 def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
                       replace=False, course_config=None):
     """
-    Full pipeline: generate via API → sanitise → diagrams → docx → pdf.
+    Full pipeline: generate via API → sanitise → docx → pdf.
 
     Args:
         lesson: lesson dict from parser
@@ -971,23 +852,8 @@ def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
     # Save markdown
     md_path = save_booklet_markdown(lesson, clean_content)
 
-    # Generate diagrams via Claude SVG (preferred) or DALL-E (fallback)
-    diagram_images = {}
-    try:
-        from svg_diagrams import generate_diagrams_for_booklet as svg_generate
-        out_dir = _build_output_dir(lesson)
-        diagram_images = svg_generate(clean_content, str(out_dir))
-    except Exception as e:
-        logger.warning(f"SVG diagram generation failed, trying DALL-E: {e}")
-        try:
-            from diagrams import generate_diagrams_for_booklet as dalle_generate
-            out_dir = _build_output_dir(lesson)
-            diagram_images = dalle_generate(clean_content, str(out_dir))
-        except Exception as e2:
-            logger.warning(f"Diagram generation skipped: {e2}")
-
     # Convert to docx
-    docx_path = markdown_to_docx(md_path, lesson=lesson, diagram_images=diagram_images)
+    docx_path = markdown_to_docx(md_path, lesson=lesson)
 
     # Convert to PDF
     pdf_path = convert_to_pdf(docx_path)
