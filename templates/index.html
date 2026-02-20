@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booklet Pipeline — AQA Combined Science</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; color: #1d1d1f; }
+
+    .header { background: #fff; border-bottom: 1px solid #d2d2d7; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .header .stats { font-size: 13px; color: #86868b; display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat-badge { background: #f5f5f7; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
+    .stat-badge.bio { color: #34c759; }
+    .stat-badge.chem { color: #ff9500; }
+    .stat-badge.phys { color: #007aff; }
+
+    .progress-bar-container { background: #fff; border-bottom: 1px solid #d2d2d7; padding: 8px 24px; }
+    .progress-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #e5e5ea; }
+    .progress-bar .seg { transition: width 0.3s; }
+    .seg-pending { background: #e5e5ea; }
+    .seg-generated { background: #ff9500; }
+    .seg-qa { background: #007aff; }
+    .seg-uploaded { background: #34c759; }
+    .progress-legend { display: flex; gap: 16px; margin-top: 6px; font-size: 12px; color: #86868b; }
+    .progress-legend span { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+    .toolbar { background: #fff; border-bottom: 1px solid #d2d2d7; padding: 12px 24px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .toolbar select, .toolbar input { font-size: 14px; padding: 6px 12px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fff; }
+    .toolbar input { flex: 1; min-width: 200px; }
+    .toolbar select { min-width: 120px; }
+
+    .content { display: flex; height: calc(100vh - 170px); }
+
+    .lesson-list { width: 440px; overflow-y: auto; border-right: 1px solid #d2d2d7; background: #fff; flex-shrink: 0; }
+    .lesson-item { padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.15s; display: flex; align-items: flex-start; gap: 10px; }
+    .lesson-item:hover { background: #f5f5f7; }
+    .lesson-item.active { background: #e8f0fe; border-left: 3px solid #007aff; }
+    .lesson-info { flex: 1; min-width: 0; }
+    .lesson-item .lesson-num { font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; }
+    .lesson-item .lesson-title { font-size: 14px; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lesson-item .lesson-meta { font-size: 12px; color: #86868b; margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .tag-bio { background: #e8f8ed; color: #1b7a3d; }
+    .tag-chem { background: #fff3e0; color: #b36b00; }
+    .tag-phys { background: #e3f2fd; color: #0d47a1; }
+    .tag-rp { background: #fce4ec; color: #c62828; }
+    .tag-ht { background: #f3e5f5; color: #6a1b9a; }
+
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .status-pending { background: #e5e5ea; }
+    .status-generated { background: #ff9500; }
+    .status-qa_passed { background: #007aff; }
+    .status-uploaded { background: #34c759; }
+
+    .detail-panel { flex: 1; overflow-y: auto; padding: 24px; }
+    .detail-panel .empty { text-align: center; margin-top: 120px; color: #86868b; }
+
+    .detail-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; }
+    .detail-card h2 { font-size: 18px; margin-bottom: 4px; }
+    .detail-card .subtitle { color: #86868b; font-size: 13px; margin-bottom: 16px; }
+    .detail-card h3 { font-size: 14px; font-weight: 600; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 6px; }
+    .detail-card p, .detail-card ul { font-size: 14px; line-height: 1.6; }
+    .detail-card ul { padding-left: 20px; }
+
+    .prompt-box { background: #1d1d1f; color: #f5f5f7; border-radius: 12px; padding: 20px; font-family: 'SF Mono', 'Menlo', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; max-height: 500px; overflow-y: auto; position: relative; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: #007aff; color: #fff; }
+    .btn-primary:hover { background: #0066d6; }
+    .btn-secondary { background: #f5f5f7; color: #1d1d1f; border: 1px solid #d2d2d7; }
+    .btn-secondary:hover { background: #e8e8ed; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-copy { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.15); color: #fff; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: none; cursor: pointer; }
+    .btn-copy:hover { background: rgba(255,255,255,0.25); }
+    .btn-copy.copied { background: #34c759; }
+
+    .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+    .prior-list { max-height: 200px; overflow-y: auto; }
+
+    .count-badge { font-size: 13px; color: #86868b; padding: 8px 16px; border-bottom: 1px solid #f0f0f0; background: #fafafa; display: flex; justify-content: space-between; align-items: center; }
+
+    .status-select { font-size: 13px; padding: 4px 8px; border: 1px solid #d2d2d7; border-radius: 6px; background: #fff; }
+
+    .status-workflow { display: flex; gap: 6px; align-items: center; margin-top: 12px; }
+    .status-step { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+    .status-step.active { border-color: currentColor; }
+    .status-step:hover { opacity: 0.8; }
+    .step-pending { background: #f5f5f7; color: #86868b; }
+    .step-generated { background: #fff3e0; color: #b36b00; }
+    .step-qa { background: #e3f2fd; color: #0d47a1; }
+    .step-uploaded { background: #e8f8ed; color: #1b7a3d; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1d1d1f; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px; z-index: 100; opacity: 0; transform: translateY(10px); transition: all 0.3s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal { background: #fff; border-radius: 16px; width: 600px; max-height: 80vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { font-size: 18px; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #86868b; padding: 4px 8px; border-radius: 6px; }
+    .modal-close:hover { background: #f5f5f7; }
+    .modal-body { padding: 16px 24px 24px; }
+    .env-editor { width: 100%; min-height: 200px; font-family: 'SF Mono', Menlo, monospace; font-size: 13px; line-height: 1.6; padding: 12px; border: 1px solid #d2d2d7; border-radius: 8px; background: #fafafa; resize: vertical; }
+    .config-status { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .config-item { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 12px; border-radius: 8px; background: #f5f5f7; }
+    .config-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .config-ok { background: #34c759; }
+    .config-missing { background: #ff3b30; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Booklet Pipeline</h1>
+    <div class="stats">
+      <span class="stat-badge">{{ stats.booklet_lessons }} booklets</span>
+      <span class="stat-badge bio">Bio: {{ stats.by_subject.get('Biology', 0) }}</span>
+      <span class="stat-badge chem">Chem: {{ stats.by_subject.get('Chemistry', 0) }}</span>
+      <span class="stat-badge phys">Phys: {{ stats.by_subject.get('Physics', 0) }}</span>
+      <button class="btn btn-secondary btn-sm" onclick="exportPrompts()">Export All Prompts</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSettings()" id="settings-btn">Settings</button>
+    </div>
+  </div>
+
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="progress-legend">
+      <span><span class="legend-dot" style="background:#e5e5ea"></span> Pending: <b id="cnt-pending">0</b></span>
+      <span><span class="legend-dot" style="background:#ff9500"></span> Generated: <b id="cnt-generated">0</b></span>
+      <span><span class="legend-dot" style="background:#007aff"></span> QA Passed: <b id="cnt-qa">0</b></span>
+      <span><span class="legend-dot" style="background:#34c759"></span> Uploaded: <b id="cnt-uploaded">0</b></span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <select id="filter-subject">
+      <option value="">All Subjects</option>
+      {% for s in subjects %}
+      <option value="{{ s }}">{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-year">
+      <option value="">Both Years</option>
+      <option value="10">Year 10</option>
+      <option value="11">Year 11</option>
+    </select>
+    <select id="filter-topic">
+      <option value="">All Topics</option>
+      {% for t in topics %}
+      <option value="{{ t }}">{{ t }}</option>
+      {% endfor %}
+    </select>
+    <select id="filter-status">
+      <option value="">All Statuses</option>
+      <option value="pending">Pending</option>
+      <option value="generated">Generated</option>
+      <option value="qa_passed">QA Passed</option>
+      <option value="uploaded">Uploaded</option>
+    </select>
+    <input type="text" id="filter-search" placeholder="Search lessons...">
+  </div>
+
+  <div class="content">
+    <div class="lesson-list">
+      <div class="count-badge">
+        <span id="lesson-count">Loading...</span>
+      </div>
+      <div id="lessons-container"></div>
+    </div>
+
+    <div class="detail-panel" id="detail-panel">
+      <div class="empty">Select a lesson from the list to view details and generate a prompt.</div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>API Keys & Settings</h2>
+        <button class="modal-close" onclick="closeSettings()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="config-status" id="config-status"></div>
+        <p style="font-size:13px; color:#86868b; margin-bottom:12px;">
+          Edit your <code>.env</code> file below. Paste your Anthropic API key, Google Drive folder ID, etc. Changes are saved immediately.
+        </p>
+        <textarea class="env-editor" id="env-editor" spellcheck="false"></textarea>
+        <div class="actions" style="margin-top:12px;">
+          <button class="btn btn-primary" onclick="saveEnv()">Save .env</button>
+          <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
+        </div>
+        <div id="env-save-result" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let allLessons = [];
+    let selectedLesson = null;
+    let selectedPrompt = null;
+
+    const STATUS_LABELS = {
+      pending: 'Pending',
+      generated: 'Generated',
+      qa_passed: 'QA Passed',
+      uploaded: 'Uploaded',
+    };
+
+    function subjectTag(subject) {
+      const cls = subject === 'Biology' ? 'tag-bio' : subject === 'Chemistry' ? 'tag-chem' : 'tag-phys';
+      return `<span class="tag ${cls}">${subject}</span>`;
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    async function fetchProgress() {
+      const res = await fetch('/api/progress-summary');
+      const data = await res.json();
+      const total = Object.values(data).reduce((a, b) => a + b, 0) || 1;
+      document.getElementById('cnt-pending').textContent = data.pending || 0;
+      document.getElementById('cnt-generated').textContent = data.generated || 0;
+      document.getElementById('cnt-qa').textContent = data.qa_passed || 0;
+      document.getElementById('cnt-uploaded').textContent = data.uploaded || 0;
+
+      const bar = document.getElementById('progress-bar');
+      bar.innerHTML = `
+        <div class="seg seg-uploaded" style="width:${(data.uploaded||0)/total*100}%"></div>
+        <div class="seg seg-qa" style="width:${(data.qa_passed||0)/total*100}%"></div>
+        <div class="seg seg-generated" style="width:${(data.generated||0)/total*100}%"></div>
+        <div class="seg seg-pending" style="width:${(data.pending||0)/total*100}%"></div>
+      `;
+    }
+
+    async function fetchLessons() {
+      const params = new URLSearchParams();
+      const subject = document.getElementById('filter-subject').value;
+      const year = document.getElementById('filter-year').value;
+      const topic = document.getElementById('filter-topic').value;
+      const search = document.getElementById('filter-search').value;
+      const status = document.getElementById('filter-status').value;
+      if (subject) params.set('subject', subject);
+      if (year) params.set('year', year);
+      if (topic) params.set('topic', topic);
+      if (search) params.set('search', search);
+      if (status) params.set('status', status);
+
+      const res = await fetch('/api/lessons?' + params.toString());
+      allLessons = await res.json();
+      renderLessons();
+    }
+
+    function renderLessons() {
+      const container = document.getElementById('lessons-container');
+      document.getElementById('lesson-count').textContent = `${allLessons.length} lessons`;
+
+      container.innerHTML = allLessons.map(l => {
+        const isActive = selectedLesson && selectedLesson.year === l.year && selectedLesson.lesson_number === l.lesson_number;
+        const tags = [subjectTag(l.subject)];
+        if (l.required_practical) tags.push(`<span class="tag tag-rp">${l.required_practical}</span>`);
+        if (l.ht_only) tags.push('<span class="tag tag-ht">HT</span>');
+        const statusCls = `status-${l.status || 'pending'}`;
+
+        return `
+          <div class="lesson-item ${isActive ? 'active' : ''}" onclick="selectLesson(${l.year}, ${l.lesson_number})">
+            <div class="status-dot ${statusCls}" title="${STATUS_LABELS[l.status] || 'Pending'}"></div>
+            <div class="lesson-info">
+              <div class="lesson-num">Y${l.year} &middot; Wk ${l.week} &middot; L${String(l.lesson_number).padStart(3, '0')}</div>
+              <div class="lesson-title">${l.title}</div>
+              <div class="lesson-meta">${tags.join('')}<span>${l.topic}</span></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function selectLesson(year, lessonNum) {
+      const res = await fetch(`/api/prompt/${year}/${lessonNum}`);
+      const data = await res.json();
+      if (data.error) return;
+
+      // Fetch current status
+      const statusRes = await fetch(`/api/status/${year}/${lessonNum}`);
+      const statusData = await statusRes.json();
+      data.lesson.status = statusData.status;
+
+      selectedLesson = data.lesson;
+      selectedPrompt = data.prompt;
+      renderLessons();
+      renderDetail(data.lesson, data.prompt);
+    }
+
+    async function setLessonStatus(year, lessonNum, status) {
+      await fetch(`/api/status/${year}/${lessonNum}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      showToast(`Marked as ${STATUS_LABELS[status]}`);
+      selectedLesson.status = status;
+      renderDetail(selectedLesson, selectedPrompt);
+      fetchLessons();
+      fetchProgress();
+    }
+
+    function renderDetail(lesson, prompt) {
+      const panel = document.getElementById('detail-panel');
+      const priorHtml = lesson.prior_lessons.length > 0
+        ? `<ul class="prior-list">${lesson.prior_lessons.map(t => `<li>${t}</li>`).join('')}</ul>`
+        : '<p>None (first lesson in subject)</p>';
+
+      const currentStatus = lesson.status || 'pending';
+      const statuses = ['pending', 'generated', 'qa_passed', 'uploaded'];
+      const stepClasses = { pending: 'step-pending', generated: 'step-generated', qa_passed: 'step-qa', uploaded: 'step-uploaded' };
+
+      const statusSteps = statuses.map(s =>
+        `<div class="status-step ${stepClasses[s]} ${s === currentStatus ? 'active' : ''}"
+              onclick="setLessonStatus(${lesson.year}, ${lesson.lesson_number}, '${s}')">
+          ${STATUS_LABELS[s]}
+        </div>`
+      ).join('');
+
+      panel.innerHTML = `
+        <div class="detail-card">
+          <h2>${lesson.title}</h2>
+          <div class="subtitle">
+            ${lesson.subject} &middot; ${lesson.topic} &middot; Year ${lesson.year} Lesson ${lesson.lesson_number}
+            &middot; ${lesson.filename}
+          </div>
+
+          <div class="status-workflow">${statusSteps}</div>
+
+          <h3>Specification Content</h3>
+          <p>${lesson.spec_content || 'None'}</p>
+
+          <h3>Key Vocabulary</h3>
+          <p>${lesson.key_vocabulary || 'None'}</p>
+
+          ${lesson.required_practical ? `<h3>Required Practical</h3><p>${lesson.required_practical}</p>` : ''}
+
+          <h3>WS / MS Skills</h3>
+          <p>${lesson.ws_ms || 'None'}</p>
+
+          ${lesson.ht_only ? `<h3>HT Only Content</h3><p>${lesson.ht_only}</p>` : ''}
+
+          <h3>Prior Lessons in ${lesson.subject} (${lesson.prior_lessons.length})</h3>
+          ${priorHtml}
+
+          <h3>Output Path</h3>
+          <p><code>${lesson.output_folder}${lesson.filename}</code></p>
+        </div>
+
+        <div class="detail-card">
+          <h3 style="margin-top:0">Pipeline Actions</h3>
+          <p style="margin-bottom:12px; color:#86868b;">Generate via API, validate the output, then upload to Google Drive.</p>
+          <div class="actions" style="flex-wrap:wrap">
+            <button class="btn btn-primary" id="btn-generate" onclick="generateBooklet(${lesson.year}, ${lesson.lesson_number})">
+              Generate via Claude API
+            </button>
+            <button class="btn btn-secondary" id="btn-validate" onclick="validateBooklet(${lesson.year}, ${lesson.lesson_number})">
+              Validate .docx
+            </button>
+            <button class="btn btn-secondary" id="btn-upload" onclick="uploadBooklet(${lesson.year}, ${lesson.lesson_number})">
+              Upload to Drive
+            </button>
+          </div>
+          <div id="action-result" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="detail-card">
+          <h3 style="margin-top:0">Master Prompt</h3>
+          <p style="margin-bottom:12px; color:#86868b;">Or copy and paste manually into a Claude Project conversation.</p>
+          <div class="prompt-box" id="prompt-text">${escapeHtml(prompt)}<button class="btn-copy" onclick="copyPrompt()">Copy</button></div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="copyPrompt()">Copy Prompt</button>
+            <button class="btn btn-secondary" onclick="copyAndMark()">Copy & Mark Generated</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function copyPrompt() {
+      const promptEl = document.getElementById('prompt-text');
+      const text = promptEl.textContent.replace('Copy', '').trim();
+      await navigator.clipboard.writeText(text);
+      const btn = promptEl.querySelector('.btn-copy');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      showToast('Prompt copied to clipboard');
+    }
+
+    async function copyAndMark() {
+      await copyPrompt();
+      if (selectedLesson) {
+        await setLessonStatus(selectedLesson.year, selectedLesson.lesson_number, 'generated');
+      }
+    }
+
+    async function exportPrompts() {
+      const subject = document.getElementById('filter-subject').value;
+      const year = document.getElementById('filter-year').value;
+      const body = {};
+      if (subject) body.subject = subject;
+      if (year) body.year = year;
+
+      showToast('Exporting prompts...');
+      const res = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      showToast(`Exported ${data.exported} prompts to ${data.directory}`);
+    }
+
+    // Filter listeners
+    ['filter-subject', 'filter-year', 'filter-topic', 'filter-status'].forEach(id => {
+      document.getElementById(id).addEventListener('change', fetchLessons);
+    });
+
+    let searchTimeout;
+    document.getElementById('filter-search').addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(fetchLessons, 300);
+    });
+
+    // --- Generate / Validate / Upload ---
+
+    async function generateBooklet(year, lessonNum) {
+      const btn = document.getElementById('btn-generate');
+      const resultDiv = document.getElementById('action-result');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      resultDiv.innerHTML = '<p style="color:#86868b">Sending to Claude API. This may take 1-2 minutes...</p>';
+
+      try {
+        const res = await fetch(`/api/generate/${year}/${lessonNum}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:#c62828">Error: ${data.error}</p>`;
+        } else {
+          resultDiv.innerHTML = `
+            <div style="background:#e8f8ed; padding:12px; border-radius:8px;">
+              <b>Generated successfully</b> in ${data.duration_s}s<br>
+              Tokens: ${data.usage.input_tokens} in / ${data.usage.output_tokens} out<br>
+              Model: ${data.model}<br>
+              Saved: <code>${data.docx_path}</code>
+            </div>`;
+          showToast('Booklet generated successfully');
+          fetchLessons();
+          fetchProgress();
+          // Refresh detail to show updated status
+          selectedLesson.status = 'generated';
+          renderDetail(selectedLesson, selectedPrompt);
+        }
+      } catch (e) {
+        resultDiv.innerHTML = `<p style="color:#c62828">Error: ${e.message}</p>`;
+      }
+      btn.disabled = false;
+      btn.textContent = 'Generate via Claude API';
+    }
+
+    async function validateBooklet(year, lessonNum) {
+      const btn = document.getElementById('btn-validate');
+      const resultDiv = document.getElementById('action-result');
+      btn.disabled = true;
+      btn.textContent = 'Validating...';
+
+      try {
+        const res = await fetch(`/api/validate/${year}/${lessonNum}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:#c62828">Error: ${data.error}</p>`;
+        } else {
+          const color = data.valid ? '#e8f8ed' : '#fce4ec';
+          const icon = data.valid ? 'PASSED' : 'FAILED';
+          const checksHtml = data.checks.map(c =>
+            `<div style="display:flex;gap:8px;padding:2px 0;font-size:13px;">
+              <span>${c.passed ? '\u2705' : '\u274c'}</span>
+              <span>${c.detail}</span>
+            </div>`
+          ).join('');
+          resultDiv.innerHTML = `
+            <div style="background:${color}; padding:12px; border-radius:8px;">
+              <b>Validation ${icon}</b> — ${data.score}/${data.total} checks passed
+              <div style="margin-top:8px">${checksHtml}</div>
+              ${data.warnings.length ? '<p style="color:#b36b00;margin-top:8px;">Warnings: ' + data.warnings.join(', ') + '</p>' : ''}
+            </div>`;
+          if (data.valid) {
+            showToast('Validation passed \u2014 marked as QA Passed');
+            fetchLessons();
+            fetchProgress();
+            selectedLesson.status = 'qa_passed';
+          } else {
+            showToast('Validation failed \u2014 review the checks');
+          }
+        }
+      } catch (e) {
+        resultDiv.innerHTML = `<p style="color:#c62828">Error: ${e.message}</p>`;
+      }
+      btn.disabled = false;
+      btn.textContent = 'Validate .docx';
+    }
+
+    async function uploadBooklet(year, lessonNum) {
+      const btn = document.getElementById('btn-upload');
+      const resultDiv = document.getElementById('action-result');
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+
+      try {
+        const res = await fetch(`/api/upload/${year}/${lessonNum}`, { method: 'POST' });
+        const data = await res.json();
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:#c62828">Error: ${data.error}</p>`;
+        } else {
+          resultDiv.innerHTML = `
+            <div style="background:#e8f8ed; padding:12px; border-radius:8px;">
+              <b>Uploaded to Google Drive</b><br>
+              Folder: ${data.folder_path}<br>
+              File: ${data.filename}<br>
+              ${data.web_link ? `<a href="${data.web_link}" target="_blank" style="color:#007aff">Open in Drive</a>` : ''}
+            </div>`;
+          showToast('Uploaded to Google Drive');
+          fetchLessons();
+          fetchProgress();
+          selectedLesson.status = 'uploaded';
+        }
+      } catch (e) {
+        resultDiv.innerHTML = `<p style="color:#c62828">Error: ${e.message}</p>`;
+      }
+      btn.disabled = false;
+      btn.textContent = 'Upload to Drive';
+    }
+
+    // --- Settings Modal ---
+
+    async function openSettings() {
+      document.getElementById('settings-modal').classList.add('open');
+      document.getElementById('env-save-result').innerHTML = '';
+      // Load current .env
+      try {
+        const res = await fetch('/api/env');
+        const data = await res.json();
+        document.getElementById('env-editor').value = data.content || '';
+      } catch(e) {
+        document.getElementById('env-editor').value = '# Could not load .env file';
+      }
+      // Load config status
+      await refreshConfigStatus();
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal').classList.remove('open');
+    }
+
+    // Close modal on overlay click
+    document.getElementById('settings-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('settings-modal')) closeSettings();
+    });
+
+    async function refreshConfigStatus() {
+      try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        const items = [
+          { label: 'Anthropic API Key', ok: cfg.anthropic_key },
+          { label: 'Google Drive Folder ID', ok: cfg.gdrive_folder },
+          { label: 'Google Client Secret', ok: cfg.gdrive_secrets },
+          { label: 'Google Auth Token', ok: cfg.gdrive_token },
+        ];
+        document.getElementById('config-status').innerHTML = items.map(i =>
+          `<div class="config-item">
+            <span class="config-dot ${i.ok ? 'config-ok' : 'config-missing'}"></span>
+            ${i.label}
+          </div>`
+        ).join('');
+
+        // Update settings button appearance
+        const allOk = cfg.anthropic_key;
+        const btn = document.getElementById('settings-btn');
+        if (!allOk) {
+          btn.style.background = '#fff3e0';
+          btn.style.color = '#b36b00';
+          btn.style.borderColor = '#ff9500';
+        } else {
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }
+      } catch(e) {}
+    }
+
+    async function saveEnv() {
+      const content = document.getElementById('env-editor').value;
+      try {
+        const res = await fetch('/api/env', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+        });
+        const data = await res.json();
+        if (data.saved) {
+          document.getElementById('env-save-result').innerHTML =
+            '<span style="color:#34c759;font-size:13px;">Saved and reloaded.</span>';
+          showToast('Settings saved');
+          await refreshConfigStatus();
+        }
+      } catch(e) {
+        document.getElementById('env-save-result').innerHTML =
+          `<span style="color:#c62828;font-size:13px;">Error: ${e.message}</span>`;
+      }
+    }
+
+    // Check config on load
+    async function checkConfig() {
+      await refreshConfigStatus();
+    }
+
+    // Initial load
+    fetchLessons();
+    fetchProgress();
+    checkConfig();
+  </script>
+</body>
+</html>

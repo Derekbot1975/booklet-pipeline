@@ -1,0 +1,29 @@
+# Environment & secrets
+.env
+client_secret.json
+gdrive_token.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Generated output
+output/
+prompts/
+
+# Progress tracking (local state)
+progress.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
