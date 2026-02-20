@@ -59,6 +59,18 @@ HT ONLY CONTENT: {ht_only}
 
 PRIOR KNOWLEDGE: {prior_knowledge}
 
+FORMATTING RULES (MUST follow — no exceptions):
+- NEVER use double asterisks (**) anywhere in your output
+- Knowledge Content sections: use bullet points (- prefix), NEVER numbered lists
+- Worked Examples: use bullet points (- prefix), NEVER numbered lists
+- Knowledge Check Questions: restart numbering at 1 for EACH Knowledge Chunk
+- Mark scheme numbering must restart per chunk to match question numbering
+- Drawing spaces: output [DRAWING SPACE: brief description] with NO other text inside
+- Topics to Revisit section: numbered 1, 2, 3 (three slots)
+- Targets for Next Lesson section: numbered 1, 2, 3 (three slots)
+- Title block must be single-spaced (one line per field, no blank lines between them)
+- Key Vocabulary tables: Term | Definition format, no asterisks
+
 Please create the booklet now, following the Prompt System v1.1 framework exactly. Save as a .docx file."""
 
     return prompt

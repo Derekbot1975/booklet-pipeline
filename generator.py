@@ -2,50 +2,102 @@
 Claude API integration for automated booklet generation.
 
 Sends the master prompt to Claude and receives the generated booklet content.
-Claude returns the booklet as a .docx artifact which we save to disk.
+Includes markdown sanitisation, .docx conversion with full formatting,
+DALL-E diagram integration, and PDF export.
 """
 
+import logging
 import os
 import re
 import time
 from pathlib import Path
+
+from docx import Document
+from docx.enum.section import WD_ORIENT
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Cm, Inches, Pt, RGBColor
 from dotenv import load_dotenv
+
 import anthropic
-from docx.shared import Pt, Inches, RGBColor
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 OUTPUT_DIR = Path(__file__).parent / "output"
 
-# System prompt matching the Claude Project instructions from the production guide
+# ---------------------------------------------------------------------------
+# SYSTEM PROMPT — comprehensive formatting instructions for Claude
+# ---------------------------------------------------------------------------
+
 SYSTEM_PROMPT = """You are a specialist educational content creator producing self-study
 booklets for AQA GCSE Combined Science: Trilogy (8464).
 
-For every booklet you create, you MUST:
+CRITICAL FORMATTING RULES — you MUST follow every one of these:
 
-1. Follow the Self-Study Booklet Prompt System v1.1 exactly
-2. Use the scheme of work for lesson sequencing and content scope
-3. Reference the AQA specification for accurate content
-4. Produce well-structured content suitable for a .docx file
-5. Target both Foundation and Higher tier (HT content flagged)
-6. Assume standard KS3 prior knowledge plus content from any preceding lessons in the scheme of work
-7. Apply ALL updated rules: question-content alignment, drawing space for diagrams, and self-correction task completion
+1. NEVER use double asterisks (**) anywhere in your output.  All emphasis
+   must be conveyed through section headings or plain text — we apply bold
+   formatting during docx conversion.  Using ** will break the pipeline.
 
-Structure every booklet with:
-- Cover page (subject, topic, spec ref, lesson number)
-- 20 one-word holistic recall starter + answer key
-- 3-5 knowledge chunks (each with vocabulary, knowledge, worked example, misconception box, 6+ knowledge check questions)
-- Summary box
-- Sentence starters panel
-- 8 exam-style questions (escalating difficulty)
-- Full mark schemes (recall, knowledge checks, exam Qs with Grade 4/7/9 exemplars)
-- Self-assessment grid with score calculator
+2. STRUCTURE — every booklet must contain these sections IN ORDER:
+   a. Title block (single-spaced, one line per field):
+      Self-Study Booklet
+      Subject: [Subject]
+      Topic: [Topic]
+      Specification Reference: [Ref]
+      Lesson Number: [Number] (Year [Year])
+      Lesson Title: [Title]
+      Required Practical: [Yes/No — name if applicable]
 
-Output the complete booklet content in well-structured markdown with clear section headers.
-Use tables where appropriate (for mark schemes, self-assessment grids).
-Clearly mark HT-only content with [HT ONLY] tags.
-Include placeholder notes like [DRAWING SPACE: description] where diagrams should go."""
+   b. Section 1 — Holistic Recall Starter (20 questions, numbered 1-20)
+   c. Section 2 — Key Vocabulary Table (Term | Definition)
+   d. Section 3 — Knowledge Development (per chunk, see below)
+   e. Section 4 — Drawing and Labelling (if applicable)
+   f. Section 5 — Calculations / Application Questions (if applicable)
+   g. Section 6 — Summary / Key Takeaways (bullet points)
+   h. Section 7 — Mark Scheme (numbering restarts per chunk — see below)
+   i. Section 8 — Self-Assessment / Progress Grid (RAG rating)
+   j. Section 9 — Topics to Revisit (numbered 1, 2, 3)
+   k. Section 10 — Targets for Next Lesson (numbered 1, 2, 3)
+   l. Section 11 — Self-Assessment Actions (checkboxes)
+   m. Section 12 — Document Info (version, date, page count)
 
+3. KNOWLEDGE CHUNKS (Section 3) — create 3-5 chunks, each containing:
+   - Introduction paragraph
+   - Key Vocabulary table
+   - Knowledge Content — BULLET POINTS ONLY (use - prefix), NEVER numbered
+   - Worked Example — BULLET POINTS ONLY, NEVER numbered
+   - Misconception box
+   - Knowledge Check Questions — numbered starting at 1 for EACH chunk
+     (Chunk 2 questions start at 1, NOT continuing from Chunk 1)
+
+4. MARK SCHEME (Section 7) — numbering MUST match the question numbering:
+   Knowledge Chunk 1 — Mark Scheme:  1, 2, 3 …
+   Knowledge Chunk 2 — Mark Scheme:  1, 2, 3 …  (restart, do NOT continue)
+
+5. DRAWING SPACES — wherever a diagram should go, output EXACTLY:
+   [DRAWING SPACE: brief description of what should be drawn]
+   Do NOT put any other text inside the drawing space marker.
+
+6. DIAGRAMS — describe what the diagram should show in the DRAWING SPACE
+   marker so our image generator can create it.  For the magnification
+   triangle, use: [DRAWING SPACE: Magnification triangle showing I = A x M]
+
+7. Use tables where appropriate (vocabulary, mark schemes, self-assessment).
+8. Clearly mark Higher-Tier-only content with [HT ONLY] tags.
+9. Target both Foundation and Higher tier.
+10. Assume standard KS3 prior knowledge plus content from preceding lessons.
+
+Output the complete booklet in well-structured markdown with clear
+section headers using # for main sections and ## / ### for subsections."""
+
+
+# ---------------------------------------------------------------------------
+# Claude API
+# ---------------------------------------------------------------------------
 
 def get_client():
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -58,37 +110,18 @@ def get_client():
 
 
 def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
-    """
-    Send a booklet generation request to Claude API.
-
-    Args:
-        lesson: lesson dict from parser
-        prompt_text: the master prompt from prompt_generator
-        model: Claude model to use
-
-    Returns:
-        dict with keys:
-            'content': the generated markdown content
-            'usage': token usage info
-            'model': model used
-            'duration_s': time taken
-    """
+    """Send a booklet generation request to Claude API."""
     client = get_client()
-
     start = time.time()
 
     message = client.messages.create(
         model=model,
         max_tokens=16000,
         system=SYSTEM_PROMPT,
-        messages=[
-            {"role": "user", "content": prompt_text}
-        ],
+        messages=[{"role": "user", "content": prompt_text}],
     )
 
     duration = time.time() - start
-
-    # Extract text content
     content = ""
     for block in message.content:
         if block.type == "text":
@@ -106,134 +139,295 @@ def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
     }
 
 
-def save_booklet_markdown(lesson, content):
-    """Save generated content as markdown file in output directory."""
-    subject = lesson["subject"] or "Unknown"
-    topic_code = re.match(r"([BCP]\d+)", lesson["topic"] or "")
-    topic_folder = lesson.get("output_folder", "").rstrip("/")
+# ---------------------------------------------------------------------------
+# Markdown sanitisation
+# ---------------------------------------------------------------------------
 
-    # Create output directory structure
-    out_dir = OUTPUT_DIR / topic_folder if topic_folder else OUTPUT_DIR / subject
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save as markdown
-    fname = f"L{lesson['lesson_number']:03d} - {lesson['title']}.md"
-    fname = fname.replace("/", "-").replace(":", " -")
-    fpath = out_dir / fname
-    fpath.write_text(content)
-
-    return str(fpath)
-
-
-def markdown_to_docx(md_path):
+def sanitize_markdown(content):
     """
-    Convert a markdown booklet to .docx format using python-docx.
-
-    This creates a properly formatted Word document with:
-    - Headers at appropriate levels
-    - Tables for mark schemes and grids
-    - Bold/italic formatting
-    - Page-like structure
+    Post-process Claude's markdown to guarantee formatting compliance.
+    Applied BEFORE docx conversion.
     """
-    from docx import Document
-    from docx.shared import Pt, Inches, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.enum.table import WD_TABLE_ALIGNMENT
+    lines = content.split("\n")
+    result = []
+    in_section = None  # track which section we're in
+    q_counter = 0
 
+    for line in lines:
+        stripped = line.strip()
+
+        # --- Detect current section from headings ---
+        heading_lower = stripped.lstrip("#").strip().lower()
+        if stripped.startswith("#"):
+            if any(kw in heading_lower for kw in [
+                "knowledge content", "key components", "key points",
+                "knowledge development"
+            ]):
+                in_section = "knowledge_content"
+            elif "worked example" in heading_lower:
+                in_section = "worked_example"
+            elif "knowledge check" in heading_lower:
+                in_section = "knowledge_check"
+                q_counter = 0
+            elif any(kw in heading_lower for kw in [
+                "knowledge chunk", "chunk "
+            ]):
+                # New chunk resets question counter
+                q_counter = 0
+                in_section = None
+            elif "mark scheme" in heading_lower:
+                in_section = "mark_scheme"
+                q_counter = 0
+            else:
+                in_section = None
+
+        # --- Strip all ** markers ---
+        line = re.sub(r"\*\*([^*]+)\*\*", r"\1", line)
+
+        # --- Force bullets in knowledge_content and worked_example ---
+        if in_section in ("knowledge_content", "worked_example"):
+            m = re.match(r"^(\s*)\d+\.\s+(.+)", line)
+            if m:
+                line = f"{m.group(1)}- {m.group(2)}"
+
+        # --- Restart numbering for knowledge check questions ---
+        if in_section == "knowledge_check":
+            m = re.match(r"^(\s*)\d+\.\s+(.+)", line)
+            if m:
+                q_counter += 1
+                line = f"{m.group(1)}{q_counter}. {m.group(2)}"
+
+        # --- Restart numbering for mark scheme answers ---
+        if in_section == "mark_scheme":
+            m = re.match(r"^(\s*)\d+\.\s+(.+)", line)
+            if m:
+                q_counter += 1
+                line = f"{m.group(1)}{q_counter}. {m.group(2)}"
+
+        # --- Clean drawing space markers ---
+        # Keep the description for diagram generation, but standardise format
+        m = re.match(r"^\[DRAWING\s+SPACE[:\s]*(.*)?\]$", stripped, re.IGNORECASE)
+        if m:
+            desc = (m.group(1) or "").strip().rstrip("]")
+            if desc:
+                line = f"[DRAWING SPACE: {desc}]"
+            else:
+                line = "[DRAWING SPACE]"
+
+        result.append(line)
+
+    return "\n".join(result)
+
+
+# ---------------------------------------------------------------------------
+# Markdown → Docx conversion
+# ---------------------------------------------------------------------------
+
+def _set_cell_border(cell, **kwargs):
+    """Set border on a table cell.  kwargs: top, bottom, left, right each a dict."""
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcBorders = OxmlElement("w:tcBorders")
+    for edge, attrs in kwargs.items():
+        el = OxmlElement(f"w:{edge}")
+        for k, v in attrs.items():
+            el.set(qn(f"w:{k}"), str(v))
+        tcBorders.append(el)
+    tcPr.append(tcBorders)
+
+
+def _add_page_number(paragraph):
+    """Insert a PAGE field into a paragraph (for footer)."""
+    run = paragraph.add_run()
+    fldChar1 = OxmlElement("w:fldChar")
+    fldChar1.set(qn("w:fldCharType"), "begin")
+    run._r.append(fldChar1)
+
+    run2 = paragraph.add_run()
+    instrText = OxmlElement("w:instrText")
+    instrText.set(qn("xml:space"), "preserve")
+    instrText.text = " PAGE "
+    run2._r.append(instrText)
+
+    run3 = paragraph.add_run()
+    fldChar2 = OxmlElement("w:fldChar")
+    fldChar2.set(qn("w:fldCharType"), "end")
+    run3._r.append(fldChar2)
+
+
+def markdown_to_docx(md_path, lesson=None, diagram_images=None):
+    """
+    Convert a markdown booklet to .docx with full formatting.
+
+    Args:
+        md_path: path to the .md file
+        lesson: lesson dict (optional, for header/footer)
+        diagram_images: dict mapping drawing-space descriptions to image paths
+    """
     md_path = Path(md_path)
     content = md_path.read_text()
+    diagram_images = diagram_images or {}
 
     doc = Document()
 
-    # Set default font
+    # --- Document setup ---
+    # Margins: 2.54 cm (1 inch) all sides
+    for section in doc.sections:
+        section.top_margin = Cm(2.54)
+        section.bottom_margin = Cm(2.54)
+        section.left_margin = Cm(2.54)
+        section.right_margin = Cm(2.54)
+
+    # Header — lesson title
+    if lesson:
+        header = doc.sections[0].header
+        header.is_linked_to_previous = False
+        hp = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
+        hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        hr = hp.add_run(lesson.get("title", ""))
+        hr.font.size = Pt(9)
+        hr.font.color.rgb = RGBColor(128, 128, 128)
+        hr.font.name = "Calibri"
+
+    # Footer — page numbers
+    footer = doc.sections[0].footer
+    footer.is_linked_to_previous = False
+    fp = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+    fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    _add_page_number(fp)
+
+    # Default font
     style = doc.styles["Normal"]
     font = style.font
     font.name = "Calibri"
     font.size = Pt(11)
 
-    # Parse markdown and build document
+    # Heading styles
+    for level, size in [(1, 14), (2, 13), (3, 12), (4, 11)]:
+        hstyle = doc.styles[f"Heading {level}"]
+        hstyle.font.name = "Calibri"
+        hstyle.font.size = Pt(size)
+        hstyle.font.bold = True
+        hstyle.font.color.rgb = RGBColor(0x1D, 0x1D, 0x1F)
+
+    # --- Parse and build document ---
     lines = content.split("\n")
     i = 0
     in_table = False
     table_rows = []
+    in_title_block = False
+    current_section = None  # track section for context-aware formatting
 
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
 
-        # Headers
-        if stripped.startswith("# ") and not stripped.startswith("## "):
-            p = doc.add_heading(stripped[2:], level=1)
+        # --- Headings ---
+        if stripped.startswith("####"):
+            text = stripped[4:].strip()
+            doc.add_heading(text, level=4)
+            current_section = _detect_section(text)
             i += 1
             continue
-        elif stripped.startswith("## "):
-            doc.add_heading(stripped[3:], level=2)
+        elif stripped.startswith("###"):
+            text = stripped[3:].strip()
+            doc.add_heading(text, level=3)
+            current_section = _detect_section(text)
             i += 1
             continue
-        elif stripped.startswith("### "):
-            doc.add_heading(stripped[4:], level=3)
+        elif stripped.startswith("##"):
+            text = stripped[2:].strip()
+            doc.add_heading(text, level=2)
+            current_section = _detect_section(text)
             i += 1
             continue
-        elif stripped.startswith("#### "):
-            doc.add_heading(stripped[5:], level=4)
+        elif stripped.startswith("#"):
+            text = stripped.lstrip("#").strip()
+            h = doc.add_heading(text, level=1)
+            current_section = _detect_section(text)
+            # Detect title block start
+            if "self-study booklet" in text.lower():
+                in_title_block = True
             i += 1
             continue
 
-        # Table detection
+        # --- Title block: single line spacing ---
+        if in_title_block:
+            if stripped == "" or stripped.startswith("#"):
+                in_title_block = False
+            else:
+                p = doc.add_paragraph()
+                pf = p.paragraph_format
+                pf.space_before = Pt(0)
+                pf.space_after = Pt(0)
+                # Bold label, regular value
+                if ":" in stripped:
+                    label, _, value = stripped.partition(":")
+                    run_label = p.add_run(label + ":")
+                    run_label.bold = True
+                    run_label.font.name = "Calibri"
+                    run_label.font.size = Pt(11)
+                    run_value = p.add_run(" " + value.strip())
+                    run_value.font.name = "Calibri"
+                    run_value.font.size = Pt(11)
+                else:
+                    _add_formatted_text(p, stripped)
+                i += 1
+                continue
+
+        # --- Table detection ---
         if stripped.startswith("|") and "|" in stripped[1:]:
             if not in_table:
                 in_table = True
                 table_rows = []
-            # Parse table row
             cells = [c.strip() for c in stripped.split("|")[1:-1]]
             # Skip separator rows (|---|---|)
             if cells and not all(set(c) <= set("-: ") for c in cells):
+                # Strip any residual ** from cell text
+                cells = [re.sub(r"\*\*([^*]+)\*\*", r"\1", c) for c in cells]
                 table_rows.append(cells)
             i += 1
             continue
         elif in_table:
-            # End of table — render it
             in_table = False
             if table_rows:
-                num_cols = max(len(r) for r in table_rows)
-                table = doc.add_table(rows=len(table_rows), cols=num_cols)
-                table.style = "Table Grid"
-                table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                for r_idx, row_data in enumerate(table_rows):
-                    for c_idx, cell_text in enumerate(row_data):
-                        if c_idx < num_cols:
-                            cell = table.cell(r_idx, c_idx)
-                            cell.text = cell_text
-                            # Bold header row
-                            if r_idx == 0:
-                                for paragraph in cell.paragraphs:
-                                    for run in paragraph.runs:
-                                        run.bold = True
-                doc.add_paragraph()  # spacing after table
-                table_rows = []
-            # Don't skip — process this line normally below
+                _render_table(doc, table_rows)
+            # Don't skip — process this line normally
 
-        # Horizontal rule
+        # --- Horizontal rule ---
         if stripped in ("---", "***", "___"):
             p = doc.add_paragraph()
             p.add_run("_" * 60)
             i += 1
             continue
 
-        # Drawing space placeholder
-        if stripped.startswith("[DRAWING SPACE"):
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = p.add_run(stripped)
-            run.italic = True
-            run.font.color.rgb = RGBColor(128, 128, 128)
-            # Add empty lines for space
-            for _ in range(3):
-                doc.add_paragraph()
+        # --- Drawing space ---
+        ds_match = re.match(
+            r"^\[DRAWING\s+SPACE(?:[:\s]*(.+?))?\]$", stripped, re.IGNORECASE
+        )
+        if ds_match:
+            desc = (ds_match.group(1) or "").strip()
+            # Check if we have a generated diagram image
+            img_path = None
+            if desc and diagram_images:
+                # Try exact match or fuzzy match
+                for key, path in diagram_images.items():
+                    if desc.lower() in key.lower() or key.lower() in desc.lower():
+                        img_path = path
+                        break
+
+            if img_path and Path(img_path).exists():
+                # Embed diagram image
+                doc.add_picture(str(img_path), width=Inches(5.5))
+                last_para = doc.paragraphs[-1]
+                last_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            else:
+                # Empty bordered box for drawing
+                _add_drawing_box(doc, desc)
             i += 1
             continue
 
-        # Bullet points
+        # --- Bullet points ---
         if stripped.startswith("- ") or stripped.startswith("* "):
             text = stripped[2:]
             p = doc.add_paragraph(style="List Bullet")
@@ -241,78 +435,276 @@ def markdown_to_docx(md_path):
             i += 1
             continue
 
-        # Numbered list
-        if re.match(r"^\d+\.\s", stripped):
-            text = re.sub(r"^\d+\.\s", "", stripped)
-            p = doc.add_paragraph(style="List Number")
-            _add_formatted_text(p, text)
+        # --- Numbered list ---
+        num_match = re.match(r"^(\d+)\.\s+(.+)", stripped)
+        if num_match:
+            # Context-aware: force bullets in knowledge content / worked example
+            if current_section in ("knowledge_content", "worked_example"):
+                p = doc.add_paragraph(style="List Bullet")
+                _add_formatted_text(p, num_match.group(2))
+            else:
+                p = doc.add_paragraph(style="List Number")
+                _add_formatted_text(p, num_match.group(2))
+                # Add answer space after knowledge check questions
+                if current_section == "knowledge_check":
+                    for _ in range(5):
+                        blank = doc.add_paragraph()
+                        blank.paragraph_format.space_before = Pt(0)
+                        blank.paragraph_format.space_after = Pt(0)
             i += 1
             continue
 
-        # Empty line
+        # --- Empty line ---
         if not stripped:
             doc.add_paragraph()
             i += 1
             continue
 
-        # Regular paragraph with inline formatting
+        # --- Regular paragraph ---
         p = doc.add_paragraph()
         _add_formatted_text(p, stripped)
         i += 1
 
     # Handle any remaining table
     if in_table and table_rows:
-        num_cols = max(len(r) for r in table_rows)
-        table = doc.add_table(rows=len(table_rows), cols=num_cols)
-        table.style = "Table Grid"
-        for r_idx, row_data in enumerate(table_rows):
-            for c_idx, cell_text in enumerate(row_data):
-                if c_idx < num_cols:
-                    table.cell(r_idx, c_idx).text = cell_text
+        _render_table(doc, table_rows)
 
-    # Save as .docx
+    # Save
     docx_path = md_path.with_suffix(".docx")
     doc.save(str(docx_path))
     return str(docx_path)
 
 
+def _detect_section(heading_text):
+    """Detect which section we're in from a heading."""
+    h = heading_text.lower()
+    if any(kw in h for kw in [
+        "knowledge content", "key components", "key points",
+        "knowledge development"
+    ]):
+        return "knowledge_content"
+    if "worked example" in h:
+        return "worked_example"
+    if "knowledge check" in h:
+        return "knowledge_check"
+    if "mark scheme" in h:
+        return "mark_scheme"
+    return None
+
+
+def _render_table(doc, table_rows):
+    """Render a markdown-parsed table into the document."""
+    num_cols = max(len(r) for r in table_rows)
+    table = doc.add_table(rows=len(table_rows), cols=num_cols)
+    table.style = "Table Grid"
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    for r_idx, row_data in enumerate(table_rows):
+        for c_idx, cell_text in enumerate(row_data):
+            if c_idx < num_cols:
+                cell = table.cell(r_idx, c_idx)
+                cell.text = ""
+                p = cell.paragraphs[0]
+                _add_formatted_text(p, cell_text)
+                # Bold header row
+                if r_idx == 0:
+                    for run in p.runs:
+                        run.bold = True
+                        run.font.name = "Calibri"
+                        run.font.size = Pt(11)
+
+    doc.add_paragraph()  # spacing after table
+
+
+def _add_drawing_box(doc, description=""):
+    """Add an empty bordered box for drawing space."""
+    # Use a 1-cell table with generous height
+    table = doc.add_table(rows=1, cols=1)
+    table.style = "Table Grid"
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    cell = table.cell(0, 0)
+    cell.text = ""
+
+    # Set minimum height (~4 inches / ~10cm)
+    tr = cell._tc.getparent()
+    trPr = tr.get_or_add_trPr()
+    trHeight = OxmlElement("w:trHeight")
+    trHeight.set(qn("w:val"), "5760")  # ~4 inches in twips
+    trHeight.set(qn("w:hRule"), "atLeast")
+    trPr.append(trHeight)
+
+    # Set cell width to full page width
+    tcPr = cell._tc.get_or_add_tcPr()
+    tcW = OxmlElement("w:tcW")
+    tcW.set(qn("w:w"), "9360")  # ~6.5 inches
+    tcW.set(qn("w:type"), "dxa")
+    tcPr.append(tcW)
+
+    doc.add_paragraph()  # spacing after box
+
+
 def _add_formatted_text(paragraph, text):
     """Parse inline markdown formatting and add runs to paragraph."""
-    # Split on bold (**text**) and italic (*text*) patterns
-    parts = re.split(r"(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)", text)
+    # Strip any residual ** from text
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+
+    # Split on italic (*text*) and code (`text`) patterns
+    parts = re.split(r"(\*[^*]+\*|`[^`]+`)", text)
     for part in parts:
-        if part.startswith("**") and part.endswith("**"):
-            run = paragraph.add_run(part[2:-2])
-            run.bold = True
-        elif part.startswith("*") and part.endswith("*"):
+        if part.startswith("*") and part.endswith("*") and not part.startswith("**"):
             run = paragraph.add_run(part[1:-1])
             run.italic = True
+            run.font.name = "Calibri"
+            run.font.size = Pt(11)
         elif part.startswith("`") and part.endswith("`"):
             run = paragraph.add_run(part[1:-1])
             run.font.name = "Courier New"
             run.font.size = Pt(10)
         elif part:
-            paragraph.add_run(part)
+            run = paragraph.add_run(part)
+            run.font.name = "Calibri"
+            run.font.size = Pt(11)
 
 
-def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929"):
+# ---------------------------------------------------------------------------
+# File naming & existence checks
+# ---------------------------------------------------------------------------
+
+def _build_filename(lesson, ext=".md"):
+    """Build the standardised filename, including RP code if applicable."""
+    num = lesson["lesson_number"]
+    title = lesson["title"] or "Untitled"
+    rp = lesson.get("required_practical") or ""
+
+    # Only prepend RP code if title doesn't already start with it
+    if rp and rp.lower() not in ("none", "n/a", "") and not title.lower().startswith(rp.lower()):
+        fname = f"L{num:03d} - {rp} - {title}{ext}"
+    else:
+        fname = f"L{num:03d} - {title}{ext}"
+
+    return fname.replace("/", "-").replace(":", " -")
+
+
+def _build_output_dir(lesson):
+    """Build and return the output directory for a lesson."""
+    topic_folder = lesson.get("output_folder", "").rstrip("/")
+    subject = lesson["subject"] or "Unknown"
+    out_dir = OUTPUT_DIR / topic_folder if topic_folder else OUTPUT_DIR / subject
+    return out_dir
+
+
+def check_existing_booklet(lesson):
+    """Check if a booklet already exists for this lesson."""
+    out_dir = _build_output_dir(lesson)
+    docx_name = _build_filename(lesson, ".docx")
+    pdf_name = _build_filename(lesson, ".pdf")
+
+    docx_path = out_dir / docx_name
+    pdf_path = out_dir / pdf_name
+
+    # Also check old naming convention (without RP code)
+    old_docx = out_dir / f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx".replace("/", "-").replace(":", " -")
+
+    exists = docx_path.exists() or old_docx.exists()
+
+    return {
+        "exists": exists,
+        "docx_path": str(docx_path if docx_path.exists() else old_docx),
+        "pdf_path": str(pdf_path),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Save markdown
+# ---------------------------------------------------------------------------
+
+def save_booklet_markdown(lesson, content):
+    """Save generated content as markdown file in output directory."""
+    out_dir = _build_output_dir(lesson)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fname = _build_filename(lesson, ".md")
+    fpath = out_dir / fname
+    fpath.write_text(content)
+    return str(fpath)
+
+
+# ---------------------------------------------------------------------------
+# PDF conversion
+# ---------------------------------------------------------------------------
+
+def convert_to_pdf(docx_path):
+    """Convert a .docx to .pdf. Returns pdf path or None on failure."""
+    try:
+        from docx2pdf import convert
+        docx_path = Path(docx_path)
+        pdf_path = docx_path.with_suffix(".pdf")
+        convert(str(docx_path), str(pdf_path))
+        # Verify the file was actually created
+        if pdf_path.exists():
+            return str(pdf_path)
+        else:
+            logger.warning("PDF conversion ran but file was not created (Word/LibreOffice may not be installed)")
+            return None
+    except Exception as e:
+        logger.warning(f"PDF conversion failed: {e}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Full pipeline
+# ---------------------------------------------------------------------------
+
+def generate_and_save(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
+                      replace=False):
     """
-    Full pipeline: generate via API, save markdown, convert to docx.
+    Full pipeline: generate via API → sanitise → diagrams → docx → pdf.
+
+    Args:
+        lesson: lesson dict from parser
+        prompt_text: the master prompt
+        model: Claude model to use
+        replace: if True, overwrite existing files
 
     Returns dict with paths and metadata.
     """
-    # Generate
+    # Check for existing files
+    existing = check_existing_booklet(lesson)
+    if existing["exists"] and not replace:
+        raise FileExistsError(
+            f"Booklet already exists at {existing['docx_path']}. "
+            "Set replace=True to overwrite."
+        )
+
+    # Generate via Claude API
     result = generate_booklet(lesson, prompt_text, model=model)
 
+    # Sanitise the markdown
+    clean_content = sanitize_markdown(result["content"])
+
     # Save markdown
-    md_path = save_booklet_markdown(lesson, result["content"])
+    md_path = save_booklet_markdown(lesson, clean_content)
+
+    # Generate diagrams via DALL-E (if available)
+    diagram_images = {}
+    try:
+        from diagrams import generate_diagrams_for_booklet
+        out_dir = _build_output_dir(lesson)
+        diagram_images = generate_diagrams_for_booklet(clean_content, str(out_dir))
+    except Exception as e:
+        logger.warning(f"Diagram generation skipped: {e}")
 
     # Convert to docx
-    docx_path = markdown_to_docx(md_path)
+    docx_path = markdown_to_docx(md_path, lesson=lesson, diagram_images=diagram_images)
+
+    # Convert to PDF
+    pdf_path = convert_to_pdf(docx_path)
 
     return {
         "md_path": md_path,
         "docx_path": docx_path,
+        "pdf_path": pdf_path,
         "usage": result["usage"],
         "model": result["model"],
         "duration_s": result["duration_s"],
