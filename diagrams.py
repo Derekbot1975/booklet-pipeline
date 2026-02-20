@@ -54,13 +54,18 @@ def generate_diagram(description, output_path, size="1024x1024"):
         return None
 
     prompt = (
-        "VERY SIMPLE educational diagram for a UK GCSE science textbook (age 14-16). "
-        "SIMPLE black and white line drawing — like a basic school textbook illustration. "
-        "MAXIMUM 5-6 labels only. Large clear text labels. Minimal detail. "
-        "NO shading, NO 3D effects, NO realistic rendering, NO decorative elements. "
-        "NO watermarks, NO background colour. "
-        "Think: the simplest possible version a teacher would draw on a whiteboard. "
-        "White background. Generous margins around the diagram. "
+        "A GCSE exam paper illustration for a UK science textbook (age 14-16). "
+        "Pure black and white line art only. Strictly monochrome: black ink on a "
+        "pure white background. High-contrast line drawing with zero shading. "
+        "Use thick, clean exterior lines and thin interior lines. "
+        "No shading, no gradients, no 3D effects, no shadows, no textures, "
+        "no greyscale fills, no decorative elements, no watermarks. "
+        "Simplified schematic — iconographic illustration style. "
+        "Minimalist design, low detail density, maximum clarity. "
+        "Isolated on a plain white background (no environment). "
+        "Leave space for labels — do NOT include any AI-generated text or labels. "
+        "Think: a clean stencil or a clear vector diagram from an exam paper. "
+        "Generous margins around the diagram. "
         f"Subject: {description}"
     )
 
