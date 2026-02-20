@@ -584,9 +584,9 @@ def markdown_to_docx(md_path, lesson=None, diagram_images=None):
             img_path = _find_diagram_image(desc, diagram_images)
 
             if img_path and Path(img_path).exists():
-                # Embed diagram image
+                # Embed diagram image — 4 inches wide to fit within margins
                 try:
-                    doc.add_picture(str(img_path), width=Inches(5.5))
+                    doc.add_picture(str(img_path), width=Inches(4.0))
                     last_para = doc.paragraphs[-1]
                     last_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 except Exception as e:

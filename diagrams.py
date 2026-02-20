@@ -35,6 +35,8 @@ def get_openai_client():
 
 
 def generate_diagram(description, output_path, size="1024x1024"):
+    # Note: DALL-E 3 only supports 1024x1024, 1024x1792, 1792x1024
+    # We use 1024x1024 (smallest) to keep diagrams simple and file sizes small
     """
     Generate a single educational diagram using DALL-E 3.
 
@@ -52,10 +54,13 @@ def generate_diagram(description, output_path, size="1024x1024"):
         return None
 
     prompt = (
-        "Clean, educational scientific diagram suitable for a GCSE (age 14-16) "
-        "science textbook. Black and white line drawing style with clear labels. "
-        "No watermarks, no decorative elements, no background colour. "
-        "Professional textbook quality. "
+        "VERY SIMPLE educational diagram for a UK GCSE science textbook (age 14-16). "
+        "SIMPLE black and white line drawing — like a basic school textbook illustration. "
+        "MAXIMUM 5-6 labels only. Large clear text labels. Minimal detail. "
+        "NO shading, NO 3D effects, NO realistic rendering, NO decorative elements. "
+        "NO watermarks, NO background colour. "
+        "Think: the simplest possible version a teacher would draw on a whiteboard. "
+        "White background. Generous margins around the diagram. "
         f"Subject: {description}"
     )
 
