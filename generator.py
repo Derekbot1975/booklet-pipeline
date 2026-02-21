@@ -13,12 +13,11 @@ import time
 from pathlib import Path
 
 from docx import Document
-from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Cm, Pt, RGBColor
+from docx.shared import Cm, Mm, Pt, RGBColor
 from dotenv import load_dotenv
 
 import anthropic
@@ -28,6 +27,39 @@ load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = Path(__file__).parent / "output"
+
+# ---------------------------------------------------------------------------
+# Formatting constants  (Booklet Formatting Specification v1.0)
+# ---------------------------------------------------------------------------
+
+FONT = "Arial"
+
+# Colour objects for font runs
+COL_PRIMARY   = RGBColor(0x1A, 0x1A, 0x1A)
+COL_SECONDARY = RGBColor(0x33, 0x33, 0x33)
+COL_MUTED     = RGBColor(0x66, 0x66, 0x66)
+COL_MISC_TTL  = RGBColor(0xCC, 0x00, 0x00)
+COL_WE_LABEL  = RGBColor(0x22, 0x66, 0xAA)
+
+# Hex strings for borders / cell shading
+HEX_BORDER_LT  = "CCCCCC"
+HEX_BORDER_MD  = "999999"
+HEX_TBL_HDR_BG = "F0F0F0"
+HEX_MISC_BDR   = "CC0000"
+HEX_MISC_BG    = "FFF5F5"
+HEX_WE_BDR     = "2266AA"
+HEX_WE_BG      = "F5F8FF"
+
+# (size_pt, colour, space_before_pt, space_after_pt)
+HEADING_SPEC = {
+    1: (26, COL_PRIMARY,   0,  6),
+    2: (18, COL_PRIMARY,  24, 12),
+    3: (14, COL_SECONDARY, 18, 8),
+    4: (12, COL_SECONDARY, 14, 6),
+    5: (11, COL_SECONDARY, 10, 4),
+}
+
+TEXT_AREA_MM = 160  # 210 − 25 − 25
 
 # ---------------------------------------------------------------------------
 # SYSTEM PROMPT — comprehensive formatting instructions for Claude
@@ -423,7 +455,7 @@ def _fix_uk_english(text):
 
 
 # ---------------------------------------------------------------------------
-# Markdown → Docx conversion
+# Markdown → Docx conversion  (Booklet Formatting Specification v1.0)
 # ---------------------------------------------------------------------------
 
 def _set_cell_border(cell, **kwargs):
@@ -439,216 +471,352 @@ def _set_cell_border(cell, **kwargs):
     tcPr.append(tcBorders)
 
 
+def _set_cell_shading(cell, hex_color):
+    """Set background shading on a table cell."""
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:fill"), hex_color)
+    shd.set(qn("w:val"), "clear")
+    shd.set(qn("w:color"), "auto")
+    tcPr.append(shd)
+
+
+def _set_cell_padding(cell, pt_val=6):
+    """Set uniform cell padding in points."""
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    tcMar = OxmlElement("w:tcMar")
+    for edge in ("top", "bottom", "left", "right"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:w"), str(int(pt_val * 20)))  # twips
+        el.set(qn("w:type"), "dxa")
+        tcMar.append(el)
+    tcPr.append(tcMar)
+
+
+def _set_cell_valign(cell, val="top"):
+    tc = cell._tc
+    tcPr = tc.get_or_add_tcPr()
+    vAlign = OxmlElement("w:vAlign")
+    vAlign.set(qn("w:val"), val)
+    tcPr.append(vAlign)
+
+
+def _set_row_cant_split(row):
+    """Prevent a table row from splitting across pages."""
+    tr = row._tr
+    trPr = tr.get_or_add_trPr()
+    el = OxmlElement("w:cantSplit")
+    el.set(qn("w:val"), "true")
+    trPr.append(el)
+
+
+def _set_row_header(row):
+    """Mark a table row as a repeating header row."""
+    tr = row._tr
+    trPr = tr.get_or_add_trPr()
+    el = OxmlElement("w:tblHeader")
+    el.set(qn("w:val"), "true")
+    trPr.append(el)
+
+
+def _para_border(paragraph, edge, sz, color):
+    """Add a border to a paragraph edge ('top' or 'bottom')."""
+    pPr = paragraph._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    bdr = OxmlElement(f"w:{edge}")
+    bdr.set(qn("w:val"), "single")
+    bdr.set(qn("w:sz"), str(sz))
+    bdr.set(qn("w:space"), "1")
+    bdr.set(qn("w:color"), color)
+    pBdr.append(bdr)
+    pPr.append(pBdr)
+
+
 def _add_page_number(paragraph):
     """Insert a PAGE field into a paragraph (for footer)."""
     run = paragraph.add_run()
-    fldChar1 = OxmlElement("w:fldChar")
-    fldChar1.set(qn("w:fldCharType"), "begin")
-    run._r.append(fldChar1)
+    fc1 = OxmlElement("w:fldChar")
+    fc1.set(qn("w:fldCharType"), "begin")
+    run._r.append(fc1)
 
     run2 = paragraph.add_run()
-    instrText = OxmlElement("w:instrText")
-    instrText.set(qn("xml:space"), "preserve")
-    instrText.text = " PAGE "
-    run2._r.append(instrText)
+    it = OxmlElement("w:instrText")
+    it.set(qn("xml:space"), "preserve")
+    it.text = " PAGE "
+    run2._r.append(it)
 
     run3 = paragraph.add_run()
-    fldChar2 = OxmlElement("w:fldChar")
-    fldChar2.set(qn("w:fldCharType"), "end")
-    run3._r.append(fldChar2)
+    fc2 = OxmlElement("w:fldChar")
+    fc2.set(qn("w:fldCharType"), "end")
+    run3._r.append(fc2)
 
 
-def markdown_to_docx(md_path, lesson=None):
-    """
-    Convert a markdown booklet to .docx with full formatting.
+def _style_footer_runs(paragraph):
+    for run in paragraph.runs:
+        run.font.name = FONT
+        run.font.size = Pt(9)
+        run.font.color.rgb = COL_MUTED
 
-    Args:
-        md_path: path to the .md file
-        lesson: lesson dict (optional, for header/footer)
-    """
-    md_path = Path(md_path)
-    content = md_path.read_text()
 
-    doc = Document()
+def _add_section_divider(doc, page_break=False):
+    """Horizontal rule before an H2 (or standalone ---).  Optionally forces a
+    page break so the divider + heading land on the new page together."""
+    p = doc.add_paragraph()
+    if page_break:
+        p.paragraph_format.page_break_before = True
+        p.paragraph_format.space_before = Pt(6)
+    else:
+        p.paragraph_format.space_before = Pt(18)
+    p.paragraph_format.space_after = Pt(6)
+    # Tiny invisible run so paragraph height is minimal
+    r = p.add_run()
+    r.font.size = Pt(2)
+    _para_border(p, "bottom", "8", HEX_BORDER_MD)  # 1 pt
 
-    # --- Document setup ---
-    # Margins: 2.54 cm (1 inch) all sides
-    for section in doc.sections:
-        section.top_margin = Cm(2.54)
-        section.bottom_margin = Cm(2.54)
-        section.left_margin = Cm(2.54)
-        section.right_margin = Cm(2.54)
 
-    # Header — lesson title
-    if lesson:
-        header = doc.sections[0].header
-        header.is_linked_to_previous = False
-        hp = header.paragraphs[0] if header.paragraphs else header.add_paragraph()
-        hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        hr = hp.add_run(lesson.get("title", ""))
-        hr.font.size = Pt(9)
-        hr.font.color.rgb = RGBColor(128, 128, 128)
-        hr.font.name = "Calibri"
+def _add_formatted_text(paragraph, text):
+    """Parse inline markdown formatting and add runs to paragraph."""
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    parts = re.split(r"(\*[^*]+\*|`[^`]+`)", text)
+    for part in parts:
+        if part.startswith("*") and part.endswith("*") and not part.startswith("**"):
+            run = paragraph.add_run(part[1:-1])
+            run.italic = True
+            run.font.name = FONT
+            run.font.size = Pt(11)
+        elif part.startswith("`") and part.endswith("`"):
+            run = paragraph.add_run(part[1:-1])
+            run.font.name = "Courier New"
+            run.font.size = Pt(10)
+        elif part:
+            run = paragraph.add_run(part)
+            run.font.name = FONT
+            run.font.size = Pt(11)
 
-    # Footer — page numbers
-    footer = doc.sections[0].footer
-    footer.is_linked_to_previous = False
-    fp = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
-    fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    _add_page_number(fp)
 
-    # Default font
-    style = doc.styles["Normal"]
-    font = style.font
-    font.name = "Calibri"
-    font.size = Pt(11)
+# ---- boxed element renderers ------------------------------------------------
 
-    # Heading styles
-    for level, size in [(1, 14), (2, 13), (3, 12), (4, 11)]:
-        hstyle = doc.styles[f"Heading {level}"]
-        hstyle.font.name = "Calibri"
-        hstyle.font.size = Pt(size)
-        hstyle.font.bold = True
-        hstyle.font.color.rgb = RGBColor(0x1D, 0x1D, 0x1F)
+def _render_misconception_box(doc, lines):
+    """Red-bordered misconception box as a 1-cell table."""
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.LEFT
+    tbl.autofit = False
+    tbl.columns[0].width = Mm(TEXT_AREA_MM)
+    cell = tbl.cell(0, 0)
+    cell.text = ""
+    ba = {"val": "single", "sz": "12", "color": HEX_MISC_BDR, "space": "0"}
+    _set_cell_border(cell, top=ba, bottom=ba, left=ba, right=ba)
+    _set_cell_shading(cell, HEX_MISC_BG)
+    _set_cell_padding(cell, 10)
 
-    # --- Parse and build document ---
-    lines = content.split("\n")
-    i = 0
-    in_table = False
-    table_rows = []
-    in_title_block = False
-    current_section = None  # track section for context-aware formatting
-
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.strip()
-
-        # --- Headings ---
-        if stripped.startswith("####"):
-            text = stripped[4:].strip()
-            doc.add_heading(text, level=4)
-            current_section = _detect_section(text)
-            i += 1
+    first = True
+    for raw in lines:
+        txt = raw.strip()
+        if not txt:
             continue
-        elif stripped.startswith("###"):
-            text = stripped[3:].strip()
-            doc.add_heading(text, level=3)
-            current_section = _detect_section(text)
-            i += 1
-            continue
-        elif stripped.startswith("##"):
-            text = stripped[2:].strip()
-            doc.add_heading(text, level=2)
-            current_section = _detect_section(text)
-            i += 1
-            continue
-        elif stripped.startswith("#"):
-            text = stripped.lstrip("#").strip()
-            h = doc.add_heading(text, level=1)
-            current_section = _detect_section(text)
-            # Detect title block start
-            if "self-study booklet" in text.lower():
-                in_title_block = True
-            i += 1
+        p = cell.paragraphs[0] if first else cell.add_paragraph()
+        first = False
+        p.paragraph_format.space_after = Pt(3)
+        p.paragraph_format.keep_together = True
+        p.paragraph_format.keep_with_next = True
+        p.paragraph_format.line_spacing = 1.15
+
+        upper = txt.upper()
+        if upper.startswith("MISCONCEPTION:"):
+            body = txt[len("MISCONCEPTION:"):].strip()
+            r = p.add_run("MISCONCEPTION: ")
+            r.bold = True; r.font.name = FONT; r.font.size = Pt(11)
+            r.font.color.rgb = COL_MISC_TTL
+            if body:
+                r2 = p.add_run(body)
+                r2.font.name = FONT; r2.font.size = Pt(11)
+                r2.font.color.rgb = COL_PRIMARY
+        elif upper.startswith("REALITY:"):
+            body = txt[len("REALITY:"):].strip()
+            r = p.add_run("REALITY: ")
+            r.bold = True; r.font.name = FONT; r.font.size = Pt(11)
+            r.font.color.rgb = COL_PRIMARY
+            if body:
+                r2 = p.add_run(body)
+                r2.font.name = FONT; r2.font.size = Pt(11)
+                r2.font.color.rgb = COL_PRIMARY
+        else:
+            _add_formatted_text(p, txt)
+
+    if cell.paragraphs:
+        cell.paragraphs[-1].paragraph_format.keep_with_next = False
+    _set_row_cant_split(tbl.rows[0])
+
+
+def _render_worked_example_box(doc, lines):
+    """Blue-bordered worked-example box as a 1-cell table."""
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.LEFT
+    tbl.autofit = False
+    tbl.columns[0].width = Mm(TEXT_AREA_MM)
+    cell = tbl.cell(0, 0)
+    cell.text = ""
+    ba = {"val": "single", "sz": "12", "color": HEX_WE_BDR, "space": "0"}
+    _set_cell_border(cell, top=ba, bottom=ba, left=ba, right=ba)
+    _set_cell_shading(cell, HEX_WE_BG)
+    _set_cell_padding(cell, 10)
+
+    first = True
+    for raw in lines:
+        txt = raw.strip()
+        if not txt:
             continue
 
-        # --- Title block: single line spacing ---
-        if in_title_block:
-            if stripped == "" or stripped.startswith("#"):
-                in_title_block = False
-            else:
-                p = doc.add_paragraph()
-                pf = p.paragraph_format
-                pf.space_before = Pt(0)
-                pf.space_after = Pt(0)
-                # Bold label, regular value
-                if ":" in stripped:
-                    label, _, value = stripped.partition(":")
-                    run_label = p.add_run(label + ":")
-                    run_label.bold = True
-                    run_label.font.name = "Calibri"
-                    run_label.font.size = Pt(11)
-                    run_value = p.add_run(" " + value.strip())
-                    run_value.font.name = "Calibri"
-                    run_value.font.size = Pt(11)
-                else:
-                    _add_formatted_text(p, stripped)
-                i += 1
+        # Bullets inside a worked example
+        if txt.startswith("- ") or txt.startswith("* "):
+            inner = txt[2:]
+            p = cell.paragraphs[0] if first else cell.add_paragraph()
+            first = False
+            p.paragraph_format.left_indent = Mm(8)
+            p.paragraph_format.space_after = Pt(3)
+            p.paragraph_format.keep_together = True
+            p.paragraph_format.line_spacing = 1.15
+            r = p.add_run("\u2022 ")
+            r.font.name = FONT; r.font.size = Pt(11)
+            _add_formatted_text(p, inner)
+            continue
+
+        p = cell.paragraphs[0] if first else cell.add_paragraph()
+        first = False
+        p.paragraph_format.space_after = Pt(3)
+        p.paragraph_format.keep_together = True
+        p.paragraph_format.keep_with_next = True
+        p.paragraph_format.line_spacing = 1.15
+
+        lower = txt.lower()
+        if lower.startswith("question:"):
+            body = txt[len("question:"):].strip()
+            r = p.add_run("Question: ")
+            r.bold = True; r.font.name = FONT; r.font.size = Pt(11)
+            r.font.color.rgb = COL_WE_LABEL
+            if body:
+                r2 = p.add_run(body)
+                r2.font.name = FONT; r2.font.size = Pt(11)
+                r2.font.color.rgb = COL_PRIMARY
+        elif lower.startswith("answer:"):
+            body = txt[len("answer:"):].strip()
+            r = p.add_run("Answer: ")
+            r.bold = True; r.font.name = FONT; r.font.size = Pt(11)
+            r.font.color.rgb = COL_WE_LABEL
+            if body:
+                r2 = p.add_run(body)
+                r2.font.name = FONT; r2.font.size = Pt(11)
+                r2.font.color.rgb = COL_PRIMARY
+        else:
+            _add_formatted_text(p, txt)
+
+    if cell.paragraphs:
+        cell.paragraphs[-1].paragraph_format.keep_with_next = False
+    _set_row_cant_split(tbl.rows[0])
+
+
+# ---- table renderer ----------------------------------------------------------
+
+def _table_context(section):
+    """Map current section to a table-rendering hint."""
+    if section in ("key_vocabulary", "vocabulary"):
+        return "vocabulary"
+    if section == "self_assessment":
+        return "self_assessment"
+    return None
+
+
+def _render_table(doc, table_rows, ctx=None):
+    """Render a markdown table with specification formatting."""
+    if not table_rows:
+        return
+    num_cols = max(len(r) for r in table_rows)
+    num_rows = len(table_rows)
+
+    tbl = doc.add_table(rows=num_rows, cols=num_cols)
+    tbl.alignment = WD_TABLE_ALIGNMENT.LEFT
+    tbl.autofit = False
+    tbl.style = "Table Grid"
+
+    # Column widths
+    if num_cols == 2 and ctx in ("vocabulary", None):
+        tbl.columns[0].width = Mm(int(TEXT_AREA_MM * 0.30))
+        tbl.columns[1].width = Mm(int(TEXT_AREA_MM * 0.70))
+    elif num_cols == 4 and ctx == "self_assessment":
+        tbl.columns[0].width = Mm(int(TEXT_AREA_MM * 0.55))
+        for c in range(1, 4):
+            tbl.columns[c].width = Mm(int(TEXT_AREA_MM * 0.15))
+    else:
+        cw = Mm(int(TEXT_AREA_MM / num_cols))
+        for c in range(num_cols):
+            tbl.columns[c].width = cw
+
+    # Outer / inner borders via table-level XML
+    tblPr = tbl._tbl.tblPr
+    if tblPr is None:
+        tblPr = OxmlElement("w:tblPr")
+        tbl._tbl.insert(0, tblPr)
+    old_bdr = tblPr.find(qn("w:tblBorders"))
+    if old_bdr is not None:
+        tblPr.remove(old_bdr)
+    tblBorders = OxmlElement("w:tblBorders")
+    for edge in ("top", "bottom", "left", "right"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), "8")
+        el.set(qn("w:color"), HEX_BORDER_MD); el.set(qn("w:space"), "0")
+        tblBorders.append(el)
+    for edge in ("insideH", "insideV"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), "single"); el.set(qn("w:sz"), "4")
+        el.set(qn("w:color"), HEX_BORDER_LT); el.set(qn("w:space"), "0")
+        tblBorders.append(el)
+    tblPr.append(tblBorders)
+
+    for r_idx, row_data in enumerate(table_rows):
+        row = tbl.rows[r_idx]
+        _set_row_cant_split(row)
+        for c_idx, cell_text in enumerate(row_data):
+            if c_idx >= num_cols:
                 continue
+            cell = tbl.cell(r_idx, c_idx)
+            cell.text = ""
+            p = cell.paragraphs[0]
+            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.line_spacing = 1.15
+            _set_cell_padding(cell, 6)
+            _set_cell_valign(cell, "top")
+            _add_formatted_text(p, cell_text)
 
-        # --- Table detection ---
-        if stripped.startswith("|") and "|" in stripped[1:]:
-            if not in_table:
-                in_table = True
-                table_rows = []
-            cells = [c.strip() for c in stripped.split("|")[1:-1]]
-            # Skip separator rows (|---|---|)
-            if cells and not all(set(c) <= set("-: ") for c in cells):
-                # Strip any residual ** from cell text
-                cells = [re.sub(r"\*\*([^*]+)\*\*", r"\1", c) for c in cells]
-                table_rows.append(cells)
-            i += 1
-            continue
-        elif in_table:
-            in_table = False
-            if table_rows:
-                _render_table(doc, table_rows)
-            # Don't skip — process this line normally
-
-        # --- Horizontal rule ---
-        if stripped in ("---", "***", "___"):
-            p = doc.add_paragraph()
-            p.add_run("_" * 60)
-            i += 1
-            continue
-
-        # --- Bullet points ---
-        if stripped.startswith("- ") or stripped.startswith("* "):
-            text = stripped[2:]
-            p = doc.add_paragraph(style="List Bullet")
-            _add_formatted_text(p, text)
-            i += 1
-            continue
-
-        # --- Numbered list ---
-        num_match = re.match(r"^(\d+)\.\s+(.+)", stripped)
-        if num_match:
-            num = num_match.group(1)
-            text = num_match.group(2)
-            if current_section in ("knowledge_content", "worked_example"):
-                # Force to bullets — number is irrelevant
-                p = doc.add_paragraph(style="List Bullet")
-                _add_formatted_text(p, text)
+            if r_idx == 0:
+                _set_cell_shading(cell, HEX_TBL_HDR_BG)
+                for run in p.runs:
+                    run.bold = True
+                    run.font.name = FONT
+                    run.font.size = Pt(11)
+                    run.font.color.rgb = COL_PRIMARY
+                if ctx == "self_assessment" and c_idx > 0:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             else:
-                # Use explicit number as text — NOT Word's auto-numbering (List
-                # Number style) which continues across the whole document and
-                # would make KC2 Q1 appear as Q4, etc.
-                p = doc.add_paragraph()
-                p.paragraph_format.left_indent = Cm(0.63)
-                _add_formatted_text(p, f"{num}. {text}")
-            i += 1
-            continue
+                sz = Pt(10) if ctx == "self_assessment" else Pt(11)
+                for run in p.runs:
+                    run.font.name = FONT
+                    run.font.size = sz
+                    run.font.color.rgb = COL_PRIMARY
+                if ctx == "self_assessment" and c_idx > 0:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # --- Empty line ---
-        if not stripped:
-            doc.add_paragraph()
-            i += 1
-            continue
+        # Header row repeats
+        if r_idx == 0:
+            _set_row_header(row)
+        # Keep small tables (<=6 body rows) on one page
+        if num_rows <= 7 and r_idx < num_rows - 1:
+            for p in row.cells[0].paragraphs:
+                p.paragraph_format.keep_with_next = True
 
-        # --- Regular paragraph ---
-        p = doc.add_paragraph()
-        _add_formatted_text(p, stripped)
-        i += 1
 
-    # Handle any remaining table
-    if in_table and table_rows:
-        _render_table(doc, table_rows)
-
-    # Save
-    docx_path = md_path.with_suffix(".docx")
-    doc.save(str(docx_path))
-    return str(docx_path)
-
+# ---- section detection -------------------------------------------------------
 
 def _detect_section(heading_text):
     """Detect which section we're in from a heading."""
@@ -660,6 +828,8 @@ def _detect_section(heading_text):
         return "knowledge_content"
     if "worked example" in h:
         return "worked_example"
+    if "misconception" in h:
+        return "misconception_box"
     if "knowledge check" in h:
         return "knowledge_check"
     if any(kw in h for kw in ["application question", "calculation"]):
@@ -670,54 +840,305 @@ def _detect_section(heading_text):
         return "targets_next_lesson"
     if "mark scheme" in h:
         return "mark_scheme"
+    if "key vocabulary" in h or ("vocabulary" in h and "table" not in h):
+        return "key_vocabulary"
+    if "self-assessment" in h and "action" not in h:
+        return "self_assessment"
+    if "progress grid" in h:
+        return "self_assessment"
     return None
 
 
-def _render_table(doc, table_rows):
-    """Render a markdown-parsed table into the document."""
-    num_cols = max(len(r) for r in table_rows)
-    table = doc.add_table(rows=len(table_rows), cols=num_cols)
-    table.style = "Table Grid"
-    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+# ---- main converter ----------------------------------------------------------
 
-    for r_idx, row_data in enumerate(table_rows):
-        for c_idx, cell_text in enumerate(row_data):
-            if c_idx < num_cols:
-                cell = table.cell(r_idx, c_idx)
-                cell.text = ""
-                p = cell.paragraphs[0]
-                _add_formatted_text(p, cell_text)
-                # Bold header row
-                if r_idx == 0:
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.name = "Calibri"
-                        run.font.size = Pt(11)
+def markdown_to_docx(md_path, lesson=None):
+    """
+    Convert a markdown booklet to .docx with full formatting
+    per the Booklet Formatting Specification v1.0.
+    """
+    md_path = Path(md_path)
+    content = md_path.read_text()
 
-    doc.add_paragraph()  # spacing after table
+    doc = Document()
 
+    # ── page setup ──────────────────────────────────────────────
+    for section in doc.sections:
+        section.page_width = Mm(210)
+        section.page_height = Mm(297)
+        section.top_margin = Mm(25)
+        section.bottom_margin = Mm(25)
+        section.left_margin = Mm(25)
+        section.right_margin = Mm(25)
+        section.header_distance = Mm(12)
+        section.footer_distance = Mm(12)
+        section.gutter = Mm(0)
 
-def _add_formatted_text(paragraph, text):
-    """Parse inline markdown formatting and add runs to paragraph."""
-    # Strip any residual ** from text
-    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    # ── default font ────────────────────────────────────────────
+    ns = doc.styles["Normal"]
+    ns.font.name = FONT
+    ns.font.size = Pt(11)
+    ns.font.color.rgb = COL_PRIMARY
+    ns.paragraph_format.line_spacing = 1.15
+    ns.paragraph_format.space_after = Pt(6)
+    ns.paragraph_format.widow_control = True
 
-    # Split on italic (*text*) and code (`text`) patterns
-    parts = re.split(r"(\*[^*]+\*|`[^`]+`)", text)
-    for part in parts:
-        if part.startswith("*") and part.endswith("*") and not part.startswith("**"):
-            run = paragraph.add_run(part[1:-1])
-            run.italic = True
-            run.font.name = "Calibri"
-            run.font.size = Pt(11)
-        elif part.startswith("`") and part.endswith("`"):
-            run = paragraph.add_run(part[1:-1])
-            run.font.name = "Courier New"
-            run.font.size = Pt(10)
-        elif part:
-            run = paragraph.add_run(part)
-            run.font.name = "Calibri"
-            run.font.size = Pt(11)
+    # ── heading styles ──────────────────────────────────────────
+    for level, (sz, col, bef, aft) in HEADING_SPEC.items():
+        try:
+            hs = doc.styles[f"Heading {level}"]
+        except KeyError:
+            continue
+        hs.font.name = FONT
+        hs.font.size = Pt(sz)
+        hs.font.bold = True
+        hs.font.color.rgb = col
+        hs.paragraph_format.space_before = Pt(bef)
+        hs.paragraph_format.space_after = Pt(aft)
+        hs.paragraph_format.keep_with_next = True
+        hs.paragraph_format.widow_control = True
+
+    # ── header (different first page) ───────────────────────────
+    sect = doc.sections[0]
+    sect.different_first_page_header_footer = True
+
+    # first-page header — empty (title page only)
+    fh = sect.first_page_header
+    fh.is_linked_to_previous = False
+
+    # subsequent-pages header — lesson title + bottom rule
+    hdr = sect.header
+    hdr.is_linked_to_previous = False
+    hp = hdr.paragraphs[0] if hdr.paragraphs else hdr.add_paragraph()
+    hp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    title_text = lesson.get("title", "") if lesson else ""
+    hr = hp.add_run(title_text)
+    hr.font.name = FONT; hr.font.size = Pt(9); hr.font.color.rgb = COL_MUTED
+    _para_border(hp, "bottom", "4", HEX_BORDER_LT)
+
+    # ── footer (page number on every page) ──────────────────────
+    for ftr_obj in (sect.first_page_footer, sect.footer):
+        ftr_obj.is_linked_to_previous = False
+        fp = ftr_obj.paragraphs[0] if ftr_obj.paragraphs else ftr_obj.add_paragraph()
+        fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _add_page_number(fp)
+        _style_footer_runs(fp)
+        _para_border(fp, "top", "4", HEX_BORDER_LT)
+
+    # ── parse and build ─────────────────────────────────────────
+    lines = content.split("\n")
+    i = 0
+    in_table = False
+    table_rows = []
+    in_title_block = False
+    current_section = None
+    box_type = None       # "misconception" | "worked_example"
+    box_lines = []
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # -- flush box on new heading --------------------------------
+        if box_type and stripped.startswith("#"):
+            if box_type == "misconception":
+                _render_misconception_box(doc, box_lines)
+            else:
+                _render_worked_example_box(doc, box_lines)
+            box_type = None
+            box_lines = []
+            # fall through to process heading
+
+        # -- flush table when leaving table rows ---------------------
+        if in_table and not (stripped.startswith("|") and "|" in stripped[1:]):
+            in_table = False
+            if table_rows:
+                _render_table(doc, table_rows, _table_context(current_section))
+            table_rows = []
+
+        # -- headings ------------------------------------------------
+        if stripped.startswith("#"):
+            level = len(stripped) - len(stripped.lstrip("#"))
+            text = stripped.lstrip("#").strip()
+            hl = text.lower()
+            current_section = _detect_section(text)
+
+            # boxed-element headings — output H4 label then collect
+            if "misconception" in hl and level >= 3:
+                h = doc.add_heading(text, level=level)
+                h.paragraph_format.keep_with_next = True
+                for r in h.runs:
+                    r.font.name = FONT
+                box_type = "misconception"
+                box_lines = []
+                i += 1; continue
+            if "worked example" in hl and level >= 3:
+                h = doc.add_heading(text, level=level)
+                h.paragraph_format.keep_with_next = True
+                for r in h.runs:
+                    r.font.name = FONT
+                box_type = "worked_example"
+                box_lines = []
+                i += 1; continue
+
+            # section divider + page break before every H2
+            if level == 2:
+                _add_section_divider(doc, page_break=True)
+
+            h = doc.add_heading(text, level=min(level, 5))
+            for r in h.runs:
+                r.font.name = FONT
+
+            # title-page detection
+            if level == 1 and "self-study booklet" in hl:
+                in_title_block = True
+            i += 1; continue
+
+        # -- collecting box content ----------------------------------
+        if box_type:
+            if stripped:
+                box_lines.append(line)
+            i += 1; continue
+
+        # -- title block (metadata) ----------------------------------
+        if in_title_block:
+            if stripped == "":
+                in_title_block = False
+            else:
+                p = doc.add_paragraph()
+                pf = p.paragraph_format
+                pf.space_before = Pt(0)
+                pf.space_after = Pt(0)
+                pf.line_spacing = 1.15
+                pf.keep_together = True
+                pf.keep_with_next = True
+                if ":" in stripped:
+                    label, _, value = stripped.partition(":")
+                    rl = p.add_run(label + ":")
+                    rl.bold = True; rl.font.name = FONT; rl.font.size = Pt(10)
+                    rl.font.color.rgb = COL_SECONDARY
+                    rv = p.add_run(" " + value.strip())
+                    rv.font.name = FONT; rv.font.size = Pt(10)
+                    rv.font.color.rgb = COL_SECONDARY
+                else:
+                    _add_formatted_text(p, stripped)
+                i += 1; continue
+
+        # -- tables --------------------------------------------------
+        if stripped.startswith("|") and "|" in stripped[1:]:
+            if not in_table:
+                in_table = True
+                table_rows = []
+            cells = [c.strip() for c in stripped.split("|")[1:-1]]
+            if cells and not all(set(c) <= set("-: ") for c in cells):
+                cells = [re.sub(r"\*\*([^*]+)\*\*", r"\1", c) for c in cells]
+                table_rows.append(cells)
+            i += 1; continue
+
+        # -- horizontal rules ----------------------------------------
+        if stripped in ("---", "***", "___"):
+            _add_section_divider(doc, page_break=False)
+            i += 1; continue
+
+        # -- checkbox lists (Section 12) -----------------------------
+        cb_match = None
+        if stripped.startswith("\u2610 "):
+            cb_match = stripped[2:]
+        elif stripped.startswith("[ ] "):
+            cb_match = stripped[4:]
+        if cb_match is not None:
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Mm(8)
+            p.paragraph_format.first_line_indent = Mm(-8)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.keep_together = True
+            p.paragraph_format.widow_control = True
+            p.paragraph_format.line_spacing = 1.15
+            r = p.add_run("\u2610 ")
+            r.font.name = FONT; r.font.size = Pt(11)
+            _add_formatted_text(p, cb_match)
+            i += 1; continue
+
+        # -- bullet points -------------------------------------------
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            text = stripped[2:]
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Mm(8)
+            p.paragraph_format.first_line_indent = Mm(-8)
+            p.paragraph_format.space_after = Pt(3)
+            p.paragraph_format.widow_control = True
+            p.paragraph_format.line_spacing = 1.15
+            r = p.add_run("\u2022 ")
+            r.font.name = FONT; r.font.size = Pt(11)
+            _add_formatted_text(p, text)
+            i += 1; continue
+
+        # -- numbered list -------------------------------------------
+        num_match = re.match(r"^(\d+)\.\s+(.+)", stripped)
+        if num_match:
+            num = num_match.group(1)
+            text = num_match.group(2)
+            if current_section in ("knowledge_content", "worked_example"):
+                p = doc.add_paragraph()
+                p.paragraph_format.left_indent = Mm(8)
+                p.paragraph_format.first_line_indent = Mm(-8)
+                p.paragraph_format.space_after = Pt(3)
+                p.paragraph_format.widow_control = True
+                p.paragraph_format.line_spacing = 1.15
+                r = p.add_run("\u2022 ")
+                r.font.name = FONT; r.font.size = Pt(11)
+                _add_formatted_text(p, text)
+            else:
+                p = doc.add_paragraph()
+                p.paragraph_format.left_indent = Mm(8)
+                p.paragraph_format.first_line_indent = Mm(-8)
+                p.paragraph_format.space_after = Pt(6)
+                p.paragraph_format.keep_together = True
+                p.paragraph_format.widow_control = True
+                p.paragraph_format.line_spacing = 1.15
+                _add_formatted_text(p, f"{num}. {text}")
+            i += 1; continue
+
+        # -- sub-part list (a), b), …) --------------------------------
+        sub_match = re.match(r"^([a-z])\)\s+(.+)", stripped)
+        if sub_match:
+            letter = sub_match.group(1)
+            text = sub_match.group(2)
+            p = doc.add_paragraph()
+            p.paragraph_format.left_indent = Mm(16)
+            p.paragraph_format.first_line_indent = Mm(-8)
+            p.paragraph_format.space_after = Pt(3)
+            p.paragraph_format.keep_together = True
+            p.paragraph_format.keep_with_next = True
+            p.paragraph_format.widow_control = True
+            p.paragraph_format.line_spacing = 1.15
+            _add_formatted_text(p, f"{letter}) {text}")
+            i += 1; continue
+
+        # -- empty line → skip (spacing from styles) -----------------
+        if not stripped:
+            i += 1; continue
+
+        # -- regular paragraph ---------------------------------------
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.widow_control = True
+        p.paragraph_format.line_spacing = 1.15
+        _add_formatted_text(p, stripped)
+        i += 1
+
+    # ── flush remaining content ─────────────────────────────────
+    if box_type:
+        if box_type == "misconception":
+            _render_misconception_box(doc, box_lines)
+        else:
+            _render_worked_example_box(doc, box_lines)
+    if in_table and table_rows:
+        _render_table(doc, table_rows, _table_context(current_section))
+
+    # ── save ────────────────────────────────────────────────────
+    docx_path = md_path.with_suffix(".docx")
+    doc.save(str(docx_path))
+    return str(docx_path)
 
 
 # ---------------------------------------------------------------------------
