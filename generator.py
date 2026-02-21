@@ -64,7 +64,7 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    b. Section 1 — Holistic Recall Starter (20 questions, numbered 1-20)
    c. Section 2 — Key Vocabulary Table (Term | Definition)
    d. Section 3 — Knowledge Development (per chunk, see below)
-   e. Section 4 — Drawing and Labelling (if applicable)
+   e. Section 4 — Drawing and Labelling (if applicable — instruct students to draw in their exercise book, do NOT leave blank space in the booklet)
    f. Section 5 — Calculations / Application Questions (numbered starting at 1)
    g. Section 6 — Summary / Key Takeaways (bullet points)
    h. Section 7 — Sentence Starters / Writing Frames (bullet points to help
@@ -626,12 +626,6 @@ def markdown_to_docx(md_path, lesson=None):
                 p = doc.add_paragraph()
                 p.paragraph_format.left_indent = Cm(0.63)
                 _add_formatted_text(p, f"{num}. {text}")
-                # Add answer space after questions
-                if current_section in ("knowledge_check", "application_questions"):
-                    for _ in range(5):
-                        blank = doc.add_paragraph()
-                        blank.paragraph_format.space_before = Pt(0)
-                        blank.paragraph_format.space_after = Pt(0)
             i += 1
             continue
 
