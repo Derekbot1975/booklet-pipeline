@@ -115,6 +115,10 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    - Worked Example (### heading) — BULLET POINTS ONLY, NEVER numbered.
      Adapt to the subject: source analysis for History, calculations for
      Maths/Science, case studies for Geography, close reading for English, etc.
+     IMPORTANT: If the worked example references a source, quotation, data set,
+     equation, diagram description, or any stimulus material, you MUST include
+     the full text of that material in the booklet so students can use it
+     independently. Never reference a source without reproducing it in full.
    - Misconception Box (### heading) — a common misconception students hold
      about this topic, with a clear explanation of the correct understanding
    - Knowledge Check Questions — numbered starting at 1 for EACH chunk
