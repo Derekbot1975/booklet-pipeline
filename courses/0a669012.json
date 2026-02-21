@@ -1,0 +1,42 @@
+{
+  "name": "History KS3",
+  "exam_board": "None",
+  "qualification": "None",
+  "key_stage": 3,
+  "subjects": [
+    "History"
+  ],
+  "xlsx_path": "/Users/derek/booklet-pipeline/uploads/History_KS3_Scheme_of_Work.xlsx",
+  "sheets": [
+    {
+      "name": "Year 7 Lessons",
+      "year": 7
+    },
+    {
+      "name": "Year 8 Lessons",
+      "year": 8
+    },
+    {
+      "name": "Year 9 Lessons",
+      "year": 9
+    }
+  ],
+  "header_row": 1,
+  "col_map": {
+    "week": 0,
+    "lesson_num": 1,
+    "subject": 2,
+    "topic": 7,
+    "title": 3,
+    "spec_content": 4,
+    "key_vocabulary": 5,
+    "ws_ms": 6
+  },
+  "topic_folders": {},
+  "subject_from_topic_prefix": {},
+  "topic_code_pattern": "",
+  "fixed_subject": null,
+  "system_prompt_context": "History KS3",
+  "prior_knowledge_base": "Students have completed the relevant prior learning for this course.",
+  "id": "0a669012"
+}

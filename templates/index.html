@@ -1098,8 +1098,8 @@
         col_map: colMap,
         fixed_subject: fixedSubject || null,
         gdrive_folder_id: gdriveFolderId || '',
-        system_prompt_context: `${examBoard ? examBoard + ' ' : ''}${qual ? qual + ' ' : ''}${name}`,
-        prior_knowledge_base: `Students have completed the relevant prior learning for this ${qual || 'course'}.`,
+        system_prompt_context: `${examBoard && !['none','n/a'].includes(examBoard.toLowerCase()) ? examBoard + ' ' : ''}${qual && !['none','n/a'].includes(qual.toLowerCase()) ? qual + ' ' : ''}${name}`,
+        prior_knowledge_base: `Students have completed the relevant prior learning for this ${qual && !['none','n/a'].includes(qual.toLowerCase()) ? qual : 'course'}.`,
       };
 
       showToast('Saving course...');

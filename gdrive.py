@@ -63,10 +63,16 @@ def _get_service():
     return build("drive", "v3", credentials=creds)
 
 
+def _escape_query(value):
+    """Escape a value for use in a Google Drive API query string."""
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
 def _find_or_create_folder(service, name, parent_id=None):
     """Find an existing folder or create a new one."""
     # Search for existing folder
-    query = f"name='{name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    safe_name = _escape_query(name)
+    query = f"name='{safe_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
     if parent_id:
         query += f" and '{parent_id}' in parents"
 
@@ -150,8 +156,9 @@ def _upload_single_file(service, file_path, folder_id):
     mimetype = MIME_TYPES.get(ext, "application/octet-stream")
 
     # Check if file already exists (by name) and update if so
+    safe_filename = _escape_query(filename)
     query = (
-        f"name='{filename}' and '{folder_id}' in parents and trashed=false"
+        f"name='{safe_filename}' and '{folder_id}' in parents and trashed=false"
     )
     existing = service.files().list(
         q=query, spaces="drive", fields="files(id)"
