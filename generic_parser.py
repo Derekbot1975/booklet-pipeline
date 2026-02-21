@@ -11,6 +11,15 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 
+def _sanitize_folder_name(name):
+    """Make a string safe for use as a folder name on all platforms."""
+    # Replace characters that are problematic on Windows or confusing on macOS
+    name = re.sub(r'[<>"/\\|?*]', '-', name)
+    # Replace colons (reserved on Windows, weird on macOS Finder)
+    name = name.replace(':', ' -')
+    return name.strip()
+
+
 # Hard non-booklet: these ALWAYS exclude regardless of spec content
 HARD_NON_BOOKLET_PATTERNS = [
     r"\bassessment\b",
@@ -116,6 +125,16 @@ def parse_sheet_generic(ws, year, course_config, header_row=None):
         List of lesson dicts
     """
     course_id = course_config.get("id", "unknown")
+    # Build a human-readable folder name for output.
+    # Single-subject courses (e.g. History) use the subject name.
+    # Multi-subject courses (e.g. AQA Combined Science) use the course name.
+    subjects_list = course_config.get("subjects", [])
+    if len(subjects_list) == 1:
+        course_folder = _sanitize_folder_name(subjects_list[0])
+    else:
+        course_folder = _sanitize_folder_name(
+            course_config.get("name", course_id)
+        )
     col_map = course_config.get("col_map", {})
     topic_folders = course_config.get("topic_folders", {})
     prefix_map = course_config.get("subject_from_topic_prefix", {})
@@ -180,13 +199,16 @@ def parse_sheet_generic(ws, year, course_config, header_row=None):
         topic_code = _extract_topic_code(topic, topic_pattern) if topic_pattern else None
         topic_folder = topic_folders.get(topic_code, "") if topic_code else ""
 
-        # Output folder path (scoped by course_id to avoid cross-course collisions)
-        if subject and topic_folder:
-            output_folder = f"{course_id}/{subject}/{topic_folder}/"
-        elif subject:
-            output_folder = f"{course_id}/{subject}/"
+        # Output folder path (human-readable with Year subfolder)
+        year_folder = f"Year {year}"
+        safe_subject = _sanitize_folder_name(subject) if subject else ""
+        safe_topic = _sanitize_folder_name(topic_folder) if topic_folder else ""
+        if safe_subject and safe_topic:
+            output_folder = f"{course_folder}/{year_folder}/{safe_subject}/{safe_topic}/"
+        elif safe_subject:
+            output_folder = f"{course_folder}/{year_folder}/{safe_subject}/"
         else:
-            output_folder = f"{course_id}/"
+            output_folder = f"{course_folder}/{year_folder}/"
 
         # Filename
         if is_booklet and title:

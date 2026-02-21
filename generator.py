@@ -1191,9 +1191,8 @@ def _build_output_dir(lesson):
 def check_existing_booklet(lesson):
     """Check if a booklet already exists for this lesson.
 
-    Checks the current (course-scoped) output path first, then falls back
-    to the legacy path layout (without course_id prefix) for backward
-    compatibility with booklets generated before multi-course support.
+    Checks the current output path first, then recursively searches older
+    path layouts for backward compatibility.
     """
     out_dir = _build_output_dir(lesson)
     docx_name = _build_filename(lesson, ".docx")
@@ -1206,32 +1205,23 @@ def check_existing_booklet(lesson):
     old_docx_name = f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx".replace("/", "-").replace(":", " -")
     old_docx = out_dir / old_docx_name
 
-    # Fallback: check legacy path (without course_id prefix)
-    course_id = lesson.get("course_id", "")
-    if course_id:
-        # Strip course_id prefix from output_folder to get legacy path
-        legacy_folder = lesson.get("output_folder", "").rstrip("/")
-        if legacy_folder.startswith(course_id + "/"):
-            legacy_folder = legacy_folder[len(course_id) + 1:]
-        elif legacy_folder == course_id:
-            legacy_folder = ""
-        legacy_dir = OUTPUT_DIR / legacy_folder if legacy_folder else OUTPUT_DIR
-        legacy_docx = legacy_dir / docx_name
-        legacy_old_docx = legacy_dir / old_docx_name
-    else:
-        legacy_docx = None
-        legacy_old_docx = None
-
-    # Check in priority order
     if docx_path.exists():
         found_path = docx_path
     elif old_docx.exists():
         found_path = old_docx
-    elif legacy_docx and legacy_docx.exists():
-        found_path = legacy_docx
-    elif legacy_old_docx and legacy_old_docx.exists():
-        found_path = legacy_old_docx
     else:
+        # Search the entire output directory for the filename.
+        # This handles all legacy path formats (course_id-based, pre-multi-course, etc.)
+        found_path = None
+        for candidate in OUTPUT_DIR.rglob(docx_name):
+            found_path = candidate
+            break
+        if not found_path:
+            for candidate in OUTPUT_DIR.rglob(old_docx_name):
+                found_path = candidate
+                break
+
+    if found_path is None:
         found_path = docx_path  # default (doesn't exist)
 
     return {
