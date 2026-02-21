@@ -252,6 +252,16 @@
           <button class="btn btn-secondary" onclick="closeSettings()">Close</button>
         </div>
         <div id="env-save-result" style="margin-top:8px;"></div>
+
+        <hr style="margin:20px 0; border:none; border-top:1px solid #e0e0e0;">
+        <h3 style="font-size:14px; font-weight:600; margin-bottom:10px;">Google Drive Connection</h3>
+        <p style="font-size:13px; color:#86868b; margin-bottom:12px;">
+          Test your Google Drive connection. This will open a browser window to authorise access on first use.
+        </p>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button class="btn btn-secondary" onclick="checkDriveConnection()" id="drive-check-btn">Check Drive Connection</button>
+          <span id="drive-status" style="font-size:13px;"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -277,7 +287,7 @@
   <div class="modal-overlay" id="batch-modal">
     <div class="modal wide">
       <div class="modal-header">
-        <h2>Generate All Booklets</h2>
+        <h2>Generate Booklets</h2>
         <button class="modal-close" onclick="closeBatchModal()">&times;</button>
       </div>
       <div class="modal-body">
@@ -288,13 +298,13 @@
 
           <!-- Filter row -->
           <div style="display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
-            <select id="batch-subject" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;" onchange="updateBatchEstimate()">
+            <select id="batch-subject" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;" onchange="onBatchFilterChange()">
               <option value="">All Subjects</option>
               {% for s in subjects %}
               <option value="{{ s }}">{{ s }}</option>
               {% endfor %}
             </select>
-            <select id="batch-year" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;" onchange="updateBatchEstimate()">
+            <select id="batch-year" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px;" onchange="onBatchFilterChange()">
               <option value="">All Years</option>
               {% for y in years %}
               <option value="{{ y }}">Year {{ y }}</option>
@@ -310,8 +320,29 @@
           </div>
 
           <div class="checkbox-row">
-            <input type="checkbox" id="batch-replace-all">
+            <input type="checkbox" id="batch-replace-all" onchange="updateBatchEstimate()">
             <label for="batch-replace-all">Replace all existing booklets (otherwise skip existing)</label>
+          </div>
+
+          <!-- Lesson scope selector -->
+          <div style="margin-top:14px;">
+            <label style="display:block; font-weight:600; margin-bottom:8px; font-size:14px;">Which lessons?</label>
+            <div style="display:flex; gap:16px; margin-bottom:10px;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+                <input type="radio" name="batch-scope" value="all" checked onchange="updateBatchScope()"> All (from filter above)
+              </label>
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px;">
+                <input type="radio" name="batch-scope" value="custom" onchange="updateBatchScope()"> Choose specific lessons
+              </label>
+            </div>
+            <div id="lesson-picker" style="display:none;">
+              <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="selectAllLessons()">Select All</button>
+                <button class="btn btn-secondary btn-sm" onclick="deselectAllLessons()">Deselect All</button>
+                <span id="picker-count" style="font-size:13px; color:#86868b;"></span>
+              </div>
+              <div id="lesson-picker-list" style="max-height:220px; overflow-y:auto; border:1px solid #d2d2d7; border-radius:8px; padding:6px 8px; background:#fafafa;"></div>
+            </div>
           </div>
 
           <!-- Cost estimate -->
@@ -332,8 +363,8 @@
           </div>
           <p id="batch-current" style="text-align:center; color:#86868b; margin-top:4px;"></p>
           <div class="batch-log" id="batch-log"></div>
-          <div class="actions" style="justify-content:center;">
-            <button class="btn btn-danger btn-sm" id="btn-cancel-batch" onclick="cancelBatch()">Cancel Batch</button>
+          <div class="actions" style="justify-content:center; margin-top:12px;">
+            <button class="btn btn-danger" id="btn-cancel-batch" onclick="cancelBatch()">⏹ Stop Generation</button>
           </div>
         </div>
 
@@ -1249,6 +1280,10 @@
       document.getElementById('batch-setup').style.display = 'block';
       document.getElementById('batch-running').style.display = 'none';
       document.getElementById('batch-complete').style.display = 'none';
+      // Reset scope to "all"
+      const allRadio = document.querySelector('input[name="batch-scope"][value="all"]');
+      if (allRadio) allRadio.checked = true;
+      document.getElementById('lesson-picker').style.display = 'none';
       initBatchModelOptions();
       updateBatchEstimate();
     }
@@ -1275,30 +1310,115 @@
       });
     }
 
+    function lessonKey(l) {
+      return `Y${l.year}_L${String(l.lesson_number).padStart(3, '0')}`;
+    }
+
+    function onBatchFilterChange() {
+      if (document.getElementById('lesson-picker').style.display !== 'none') {
+        renderLessonPicker();
+      }
+      updateBatchEstimate();
+    }
+
+    function updateBatchScope() {
+      const scope = document.querySelector('input[name="batch-scope"]:checked')?.value || 'all';
+      const picker = document.getElementById('lesson-picker');
+      if (scope === 'custom') {
+        picker.style.display = 'block';
+        renderLessonPicker();
+      } else {
+        picker.style.display = 'none';
+      }
+      updateBatchEstimate();
+    }
+
+    function renderLessonPicker() {
+      const subject = document.getElementById('batch-subject')?.value || '';
+      const year = document.getElementById('batch-year')?.value || '';
+      let lessons = allLessons.filter(l => l.status !== 'uploaded');
+      if (subject) lessons = lessons.filter(l => l.subject === subject);
+      if (year) lessons = lessons.filter(l => String(l.year) === String(year));
+
+      // Preserve any existing selections
+      const existing = new Set([...document.querySelectorAll('input[name="lesson-pick"]:checked')].map(el => el.value));
+
+      const list = document.getElementById('lesson-picker-list');
+      if (lessons.length === 0) {
+        list.innerHTML = '<p style="color:#86868b; font-size:13px; padding:8px;">No lessons match the current filter.</p>';
+        updatePickerCount();
+        return;
+      }
+
+      list.innerHTML = lessons.map(l => {
+        const key = lessonKey(l);
+        const checked = existing.size === 0 || existing.has(key); // default all checked
+        const isPending = !l.status || l.status === 'pending';
+        const statusCol = isPending ? '#ff9500' : '#34c759';
+        const statusLabel = isPending ? 'pending' : l.status;
+        return `<label style="display:flex; align-items:center; gap:8px; padding:5px 6px; cursor:pointer; border-radius:4px; font-size:13px; hover:background:#f0f0f5;">
+          <input type="checkbox" name="lesson-pick" value="${key}" ${checked ? 'checked' : ''} onchange="updatePickerCount(); updateBatchEstimate();">
+          <span style="min-width:70px; color:#86868b; font-size:12px;">Y${l.year} · L${l.lesson_number}</span>
+          <span style="flex:1;">${l.title}</span>
+          <span style="color:${statusCol}; font-size:11px; min-width:60px; text-align:right;">${statusLabel}</span>
+        </label>`;
+      }).join('');
+
+      updatePickerCount();
+    }
+
+    function updatePickerCount() {
+      const total = document.querySelectorAll('input[name="lesson-pick"]').length;
+      const selected = document.querySelectorAll('input[name="lesson-pick"]:checked').length;
+      const el = document.getElementById('picker-count');
+      if (el) el.textContent = `${selected} of ${total} selected`;
+    }
+
+    function selectAllLessons() {
+      document.querySelectorAll('input[name="lesson-pick"]').forEach(el => el.checked = true);
+      updatePickerCount();
+      updateBatchEstimate();
+    }
+
+    function deselectAllLessons() {
+      document.querySelectorAll('input[name="lesson-pick"]').forEach(el => el.checked = false);
+      updatePickerCount();
+      updateBatchEstimate();
+    }
+
     function updateBatchEstimate() {
       const subject = document.getElementById('batch-subject')?.value || '';
       const year = document.getElementById('batch-year')?.value || '';
       const modelId = document.querySelector('input[name="batch-model"]:checked')?.value || MODELS[0].id;
       const pricing = getModelPricing(modelId);
+      const scope = document.querySelector('input[name="batch-scope"]:checked')?.value || 'all';
+      const replaceAll = document.getElementById('batch-replace-all')?.checked;
 
-      // Count pending lessons matching current filter
       let filtered = allLessons.filter(l => l.status !== 'uploaded');
       if (subject) filtered = filtered.filter(l => l.subject === subject);
       if (year) filtered = filtered.filter(l => String(l.year) === String(year));
-      const pending = filtered.filter(l => !l.status || l.status === 'pending').length;
-      const total = filtered.length;
 
+      let toGenerate;
+      if (scope === 'custom') {
+        const selected = new Set([...document.querySelectorAll('input[name="lesson-pick"]:checked')].map(el => el.value));
+        toGenerate = filtered.filter(l => selected.has(lessonKey(l)));
+        if (!replaceAll) toGenerate = toGenerate.filter(l => !l.status || l.status === 'pending');
+      } else {
+        toGenerate = replaceAll ? filtered : filtered.filter(l => !l.status || l.status === 'pending');
+      }
+
+      const count = toGenerate.length;
       // Estimate: ~350 input tokens (non-cached) + ~1200 cache read + ~13000 output per booklet
       const costPer = 350 * pricing.input / 1e6 + 1200 * pricing.cache_read / 1e6 + 13000 * pricing.output / 1e6;
-      const estTotal = costPer * pending;
-      const estAll = costPer * total;
+      const estTotal = costPer * count;
 
       const div = document.getElementById('batch-estimate');
       if (!div) return;
       div.innerHTML = `
-        <b>Scope:</b> ${total} booklets in filter · ${pending} pending (will be generated)<br>
-        <b>Estimated cost (pending):</b> ~${fmtCost(estTotal)}
-        <span style="color:#86868b; font-size:12px;">(~${fmtCost(costPer)}/booklet · replacing all: ~${fmtCost(estAll)})</span><br>
+        <b>Will generate:</b> ${count} booklet${count !== 1 ? 's' : ''}
+        ${scope === 'custom' ? '<span style="color:#86868b; font-size:12px;">(custom selection)</span>' : ''}<br>
+        <b>Estimated cost:</b> ~${fmtCost(estTotal)}
+        <span style="color:#86868b; font-size:12px;">(~${fmtCost(costPer)}/booklet)</span><br>
         <span style="color:#86868b; font-size:12px;">⚡ Prompt caching active — system prompt tokens heavily discounted after first booklet</span>
       `;
     }
@@ -1336,9 +1456,13 @@
       document.getElementById('batch-counter').textContent = 'Starting...';
       document.getElementById('batch-current').textContent = '';
 
+      const scope = document.querySelector('input[name="batch-scope"]:checked')?.value || 'all';
       const body = { replace_all: replaceAll, model };
       if (subject) body.subject = subject;
       if (year) body.year = year;
+      if (scope === 'custom') {
+        body.lesson_ids = [...document.querySelectorAll('input[name="lesson-pick"]:checked')].map(el => el.value);
+      }
 
       // Use fetch + ReadableStream for SSE since we need POST
       fetch('/api/generate-all', {
@@ -1606,6 +1730,25 @@
           btn.style.borderColor = '';
         }
       } catch(e) {}
+    }
+
+    async function checkDriveConnection() {
+      const btn = document.getElementById('drive-check-btn');
+      const status = document.getElementById('drive-status');
+      btn.disabled = true;
+      status.innerHTML = '<span style="color:#86868b;">Checking...</span>';
+      try {
+        const res = await fetch('/api/gdrive/check');
+        const data = await res.json();
+        if (data.connected) {
+          status.innerHTML = `<span style="color:#34c759;">✓ Connected as ${data.email}</span>`;
+        } else {
+          status.innerHTML = `<span style="color:#c62828;">✗ ${data.error || 'Not connected'}</span>`;
+        }
+      } catch(e) {
+        status.innerHTML = `<span style="color:#c62828;">✗ ${e.message}</span>`;
+      }
+      btn.disabled = false;
     }
 
     async function saveEnv() {

@@ -481,11 +481,18 @@ def api_generate_all():
 
     config = get_active_course_config()
 
+    lesson_ids = body.get("lesson_ids")  # e.g. ["Y7_L001", "Y8_L005"] for custom selection
+
     lessons = list(data["booklet_lessons"])
     if subject:
         lessons = [l for l in lessons if l["subject"] == subject]
     if year:
         lessons = [l for l in lessons if str(l["year"]) == str(year)]
+
+    # Custom lesson selection overrides subject/year filter
+    if lesson_ids:
+        id_set = set(lesson_ids)
+        lessons = [l for l in lessons if f"Y{l['year']}_L{l['lesson_number']:03d}" in id_set]
 
     # Only generate pending lessons unless replace_all
     if not replace_all:
