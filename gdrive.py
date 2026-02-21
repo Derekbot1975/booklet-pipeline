@@ -48,7 +48,7 @@ def _get_credentials():
             flow = InstalledAppFlow.from_client_secrets_file(
                 str(client_secrets_path), SCOPES
             )
-            creds = flow.run_local_server(port=8090)
+            creds = flow.run_local_server(port=0)
 
         # Save token for next time
         TOKEN_FILE.write_text(creds.to_json())
@@ -108,20 +108,14 @@ def _ensure_folder_path(service, path_parts, root_id):
     return current_id
 
 
-def upload_booklet(docx_path, lesson, root_folder_id=None):
-    """
-    Upload a .docx booklet to the correct Google Drive folder.
+MIME_TYPES = {
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".pdf": "application/pdf",
+}
 
-    Args:
-        docx_path: path to the .docx file
-        lesson: lesson dict from parser (used for folder routing)
-        root_folder_id: Google Drive folder ID for the root. If None, reads from env.
 
-    Returns:
-        dict with file ID and web view link
-    """
-    from googleapiclient.http import MediaFileUpload
-
+def _resolve_folder(service, lesson, root_folder_id):
+    """Resolve (and create if needed) the target Drive folder for a lesson."""
     root_folder_id = root_folder_id or os.getenv("GDRIVE_ROOT_FOLDER_ID")
     if not root_folder_id:
         raise RuntimeError(
@@ -129,47 +123,45 @@ def upload_booklet(docx_path, lesson, root_folder_id=None):
             "This is the ID of your 'GCSE Combined Science — Self-Study Booklets' "
             "folder in Google Drive."
         )
-
-    docx_path = Path(docx_path)
-    service = _get_service()
-
-    # Build folder path from lesson data
-    # e.g. output_folder = "Biology/B1 - Cell Biology/"
     output_folder = lesson.get("output_folder", "").strip("/")
     if output_folder:
         path_parts = output_folder.split("/")
     else:
         path_parts = [lesson.get("subject", "Unknown")]
+    folder_id = _ensure_folder_path(service, path_parts, root_folder_id)
+    return folder_id, path_parts
 
-    # Ensure folder path exists
-    target_folder_id = _ensure_folder_path(service, path_parts, root_folder_id)
+
+def _upload_single_file(service, file_path, folder_id):
+    """
+    Upload or update a single file in a Drive folder.
+
+    Returns dict with file_id, web_link, and filename.
+    """
+    from googleapiclient.http import MediaFileUpload
+
+    file_path = Path(file_path)
+    filename = file_path.name
+    ext = file_path.suffix.lower()
+    mimetype = MIME_TYPES.get(ext, "application/octet-stream")
 
     # Check if file already exists (by name) and update if so
-    filename = lesson.get("filename") or docx_path.name
     query = (
-        f"name='{filename}' and '{target_folder_id}' in parents and trashed=false"
+        f"name='{filename}' and '{folder_id}' in parents and trashed=false"
     )
     existing = service.files().list(
         q=query, spaces="drive", fields="files(id)"
     ).execute().get("files", [])
 
-    media = MediaFileUpload(
-        str(docx_path),
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
+    media = MediaFileUpload(str(file_path), mimetype=mimetype)
 
     if existing:
-        # Update existing file
         file_id = existing[0]["id"]
         result = service.files().update(
             fileId=file_id, media_body=media, fields="id, webViewLink"
         ).execute()
     else:
-        # Create new file
-        metadata = {
-            "name": filename,
-            "parents": [target_folder_id],
-        }
+        metadata = {"name": filename, "parents": [folder_id]}
         result = service.files().create(
             body=metadata, media_body=media, fields="id, webViewLink"
         ).execute()
@@ -177,9 +169,48 @@ def upload_booklet(docx_path, lesson, root_folder_id=None):
     return {
         "file_id": result["id"],
         "web_link": result.get("webViewLink", ""),
-        "folder_path": "/".join(path_parts),
         "filename": filename,
     }
+
+
+def upload_booklet(docx_path, lesson, root_folder_id=None):
+    """
+    Upload .docx and .pdf booklet files to the correct Google Drive folder.
+
+    Uploads the .docx first. If a matching .pdf exists alongside it,
+    that is uploaded too.
+
+    Args:
+        docx_path: path to the .docx file
+        lesson: lesson dict from parser (used for folder routing)
+        root_folder_id: Google Drive folder ID for the root.
+
+    Returns:
+        dict with results for each uploaded file
+    """
+    docx_path = Path(docx_path)
+    service = _get_service()
+    folder_id, path_parts = _resolve_folder(service, lesson, root_folder_id)
+    folder_path = "/".join(path_parts)
+
+    results = {"folder_path": folder_path, "files": []}
+
+    # Upload .docx
+    docx_result = _upload_single_file(service, docx_path, folder_id)
+    results["files"].append(docx_result)
+
+    # Upload .pdf if it exists
+    pdf_path = docx_path.with_suffix(".pdf")
+    if pdf_path.exists():
+        pdf_result = _upload_single_file(service, pdf_path, folder_id)
+        results["files"].append(pdf_result)
+
+    # Backward-compatible top-level fields (from the docx upload)
+    results["file_id"] = docx_result["file_id"]
+    results["web_link"] = docx_result["web_link"]
+    results["filename"] = docx_result["filename"]
+
+    return results
 
 
 def check_connection():

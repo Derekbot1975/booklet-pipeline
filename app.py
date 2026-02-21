@@ -698,7 +698,7 @@ def api_validate(year, lesson_num):
 @app.route("/api/upload/<int:year>/<int:lesson_num>", methods=["POST"])
 def api_upload(year, lesson_num):
     from gdrive import upload_booklet
-    from generator import OUTPUT_DIR
+    from generator import OUTPUT_DIR, _build_filename
 
     data = get_data()
     lesson = _find_lesson(data, year, lesson_num)
@@ -706,12 +706,18 @@ def api_upload(year, lesson_num):
         return jsonify({"error": "Lesson not found"}), 404
 
     output_folder = lesson.get("output_folder", "").strip("/")
-    fname = f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx"
-    fname = fname.replace("/", "-").replace(":", " -")
+    fname = _build_filename(lesson, ".docx")
     docx_path = OUTPUT_DIR / output_folder / fname
 
     if not docx_path.exists():
-        return jsonify({"error": f"File not found: {docx_path}. Generate it first."}), 404
+        # Fallback: try old naming convention (without RP code)
+        old_fname = f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx"
+        old_fname = old_fname.replace("/", "-").replace(":", " -")
+        old_path = OUTPUT_DIR / output_folder / old_fname
+        if old_path.exists():
+            docx_path = old_path
+        else:
+            return jsonify({"error": f"File not found: {docx_path}. Generate it first."}), 404
 
     try:
         result = upload_booklet(str(docx_path), lesson)
