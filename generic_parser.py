@@ -115,6 +115,7 @@ def parse_sheet_generic(ws, year, course_config, header_row=None):
     Returns:
         List of lesson dicts
     """
+    course_id = course_config.get("id", "unknown")
     col_map = course_config.get("col_map", {})
     topic_folders = course_config.get("topic_folders", {})
     prefix_map = course_config.get("subject_from_topic_prefix", {})
@@ -179,13 +180,13 @@ def parse_sheet_generic(ws, year, course_config, header_row=None):
         topic_code = _extract_topic_code(topic, topic_pattern) if topic_pattern else None
         topic_folder = topic_folders.get(topic_code, "") if topic_code else ""
 
-        # Output folder path
+        # Output folder path (scoped by course_id to avoid cross-course collisions)
         if subject and topic_folder:
-            output_folder = f"{subject}/{topic_folder}/"
+            output_folder = f"{course_id}/{subject}/{topic_folder}/"
         elif subject:
-            output_folder = f"{subject}/"
+            output_folder = f"{course_id}/{subject}/"
         else:
-            output_folder = ""
+            output_folder = f"{course_id}/"
 
         # Filename
         if is_booklet and title:
@@ -197,6 +198,7 @@ def parse_sheet_generic(ws, year, course_config, header_row=None):
             "year": year,
             "week": current_week,
             "lesson_number": lesson_num,
+            "course_id": course_id,
             "subject": subject,
             "topic": topic,
             "title": title,

@@ -267,15 +267,15 @@ def api_lessons():
 
     status_filter = request.args.get("status")
     if status_filter:
-        statuses = tracker.get_all_statuses()
+        statuses = tracker.get_all_statuses(_active_course_id)
         lessons = [
             l for l in lessons
-            if statuses.get(f"Y{l['year']}_L{l['lesson_number']:03d}", "pending") == status_filter
+            if statuses.get(tracker._key(l['year'], l['lesson_number'], _active_course_id), "pending") == status_filter
         ]
 
-    statuses = tracker.get_all_statuses()
+    statuses = tracker.get_all_statuses(_active_course_id)
     for l in lessons:
-        l["status"] = statuses.get(f"Y{l['year']}_L{l['lesson_number']:03d}", "pending")
+        l["status"] = statuses.get(tracker._key(l['year'], l['lesson_number'], _active_course_id), "pending")
 
     return jsonify(lessons)
 
@@ -321,7 +321,7 @@ def api_reload():
 
 @app.route("/api/status/<int:year>/<int:lesson_num>")
 def api_get_status(year, lesson_num):
-    return jsonify({"status": tracker.get_status(year, lesson_num)})
+    return jsonify({"status": tracker.get_status(year, lesson_num, _active_course_id)})
 
 
 @app.route("/api/status/<int:year>/<int:lesson_num>", methods=["POST"])
@@ -329,7 +329,7 @@ def api_set_status(year, lesson_num):
     body = request.get_json()
     status = body.get("status", "pending")
     try:
-        tracker.set_status(year, lesson_num, status)
+        tracker.set_status(year, lesson_num, status, _active_course_id)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"status": status})
@@ -337,13 +337,13 @@ def api_set_status(year, lesson_num):
 
 @app.route("/api/statuses")
 def api_all_statuses():
-    return jsonify(tracker.get_all_statuses())
+    return jsonify(tracker.get_all_statuses(_active_course_id))
 
 
 @app.route("/api/progress-summary")
 def api_progress_summary():
     data = get_data()
-    return jsonify(tracker.get_summary(data["booklet_lessons"]))
+    return jsonify(tracker.get_summary(data["booklet_lessons"], _active_course_id))
 
 
 # ========================================================================
@@ -369,10 +369,10 @@ def api_export_prompts():
     if year:
         lessons = [l for l in lessons if str(l["year"]) == str(year)]
     if status_filter:
-        statuses = tracker.get_all_statuses()
+        statuses = tracker.get_all_statuses(_active_course_id)
         lessons = [
             l for l in lessons
-            if statuses.get(f"Y{l['year']}_L{l['lesson_number']:03d}", "pending") == status_filter
+            if statuses.get(tracker._key(l['year'], l['lesson_number'], _active_course_id), "pending") == status_filter
         ]
 
     EXPORT_DIR.mkdir(exist_ok=True)
@@ -443,7 +443,7 @@ def api_generate(year, lesson_num):
                 f"'{lesson['title']}' at {datetime.now().isoformat()}"
             )
 
-        tracker.set_status(year, lesson_num, "generated")
+        tracker.set_status(year, lesson_num, "generated", _active_course_id)
         return jsonify({
             "success": True,
             "md_path": result["md_path"],
@@ -496,10 +496,10 @@ def api_generate_all():
 
     # Only generate pending lessons unless replace_all
     if not replace_all:
-        statuses = tracker.get_all_statuses()
+        statuses = tracker.get_all_statuses(_active_course_id)
         lessons = [
             l for l in lessons
-            if statuses.get(f"Y{l['year']}_L{l['lesson_number']:03d}", "pending") == "pending"
+            if statuses.get(tracker._key(l['year'], l['lesson_number'], _active_course_id), "pending") == "pending"
         ]
 
     batch_id = str(uuid.uuid4())[:8]
@@ -542,7 +542,7 @@ def api_generate_all():
                     lesson, prompt, model=model, replace=True,
                     course_config=config,
                 )
-                tracker.set_status(y, ln, "generated")
+                tracker.set_status(y, ln, "generated", _active_course_id)
 
                 if is_replace:
                     replaced += 1
@@ -655,37 +655,23 @@ def api_reprocess_all():
 @app.route("/api/validate/<int:year>/<int:lesson_num>", methods=["POST"])
 def api_validate(year, lesson_num):
     from validator import validate_docx
-    from generator import OUTPUT_DIR
+    from generator import check_existing_booklet
 
     data = get_data()
     lesson = _find_lesson(data, year, lesson_num)
     if not lesson:
         return jsonify({"error": "Lesson not found"}), 404
 
-    output_folder = lesson.get("output_folder", "").strip("/")
-    fname = lesson.get("filename", "")
-    if not fname:
-        return jsonify({"error": "No filename for this lesson"}), 400
+    existing = check_existing_booklet(lesson)
+    if not existing["exists"]:
+        return jsonify({"error": f"File not found: {existing['docx_path']}. Generate it first."}), 404
 
-    docx_path = OUTPUT_DIR / output_folder / fname
-    if not docx_path.exists():
-        # Try various naming patterns
-        for pattern in [
-            f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx",
-            f"L{lesson['lesson_number']:03d} - {lesson.get('required_practical', '')} - {lesson['title']}.docx",
-        ]:
-            alt = pattern.replace("/", "-").replace(":", " -")
-            alt_path = OUTPUT_DIR / output_folder / alt
-            if alt_path.exists():
-                docx_path = alt_path
-                break
-        else:
-            return jsonify({"error": f"File not found: {docx_path}"}), 404
+    docx_path = Path(existing["docx_path"])
 
     try:
         result = validate_docx(str(docx_path))
         if result["valid"]:
-            tracker.set_status(year, lesson_num, "qa_passed")
+            tracker.set_status(year, lesson_num, "qa_passed", _active_course_id)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -698,30 +684,25 @@ def api_validate(year, lesson_num):
 @app.route("/api/upload/<int:year>/<int:lesson_num>", methods=["POST"])
 def api_upload(year, lesson_num):
     from gdrive import upload_booklet
-    from generator import OUTPUT_DIR, _build_filename
+    from generator import check_existing_booklet
 
     data = get_data()
     lesson = _find_lesson(data, year, lesson_num)
     if not lesson:
         return jsonify({"error": "Lesson not found"}), 404
 
-    output_folder = lesson.get("output_folder", "").strip("/")
-    fname = _build_filename(lesson, ".docx")
-    docx_path = OUTPUT_DIR / output_folder / fname
+    existing = check_existing_booklet(lesson)
+    if not existing["exists"]:
+        return jsonify({"error": f"File not found: {existing['docx_path']}. Generate it first."}), 404
 
-    if not docx_path.exists():
-        # Fallback: try old naming convention (without RP code)
-        old_fname = f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx"
-        old_fname = old_fname.replace("/", "-").replace(":", " -")
-        old_path = OUTPUT_DIR / output_folder / old_fname
-        if old_path.exists():
-            docx_path = old_path
-        else:
-            return jsonify({"error": f"File not found: {docx_path}. Generate it first."}), 404
+    docx_path = Path(existing["docx_path"])
 
     try:
-        result = upload_booklet(str(docx_path), lesson)
-        tracker.set_status(year, lesson_num, "uploaded")
+        # Use per-course Drive folder if configured, otherwise global
+        config = get_active_course_config()
+        drive_folder = (config or {}).get("gdrive_folder_id") or None
+        result = upload_booklet(str(docx_path), lesson, root_folder_id=drive_folder)
+        tracker.set_status(year, lesson_num, "uploaded", _active_course_id)
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

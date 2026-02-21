@@ -1169,7 +1169,12 @@ def _build_output_dir(lesson):
 
 
 def check_existing_booklet(lesson):
-    """Check if a booklet already exists for this lesson."""
+    """Check if a booklet already exists for this lesson.
+
+    Checks the current (course-scoped) output path first, then falls back
+    to the legacy path layout (without course_id prefix) for backward
+    compatibility with booklets generated before multi-course support.
+    """
     out_dir = _build_output_dir(lesson)
     docx_name = _build_filename(lesson, ".docx")
     pdf_name = _build_filename(lesson, ".pdf")
@@ -1178,13 +1183,40 @@ def check_existing_booklet(lesson):
     pdf_path = out_dir / pdf_name
 
     # Also check old naming convention (without RP code)
-    old_docx = out_dir / f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx".replace("/", "-").replace(":", " -")
+    old_docx_name = f"L{lesson['lesson_number']:03d} - {lesson['title']}.docx".replace("/", "-").replace(":", " -")
+    old_docx = out_dir / old_docx_name
 
-    exists = docx_path.exists() or old_docx.exists()
+    # Fallback: check legacy path (without course_id prefix)
+    course_id = lesson.get("course_id", "")
+    if course_id:
+        # Strip course_id prefix from output_folder to get legacy path
+        legacy_folder = lesson.get("output_folder", "").rstrip("/")
+        if legacy_folder.startswith(course_id + "/"):
+            legacy_folder = legacy_folder[len(course_id) + 1:]
+        elif legacy_folder == course_id:
+            legacy_folder = ""
+        legacy_dir = OUTPUT_DIR / legacy_folder if legacy_folder else OUTPUT_DIR
+        legacy_docx = legacy_dir / docx_name
+        legacy_old_docx = legacy_dir / old_docx_name
+    else:
+        legacy_docx = None
+        legacy_old_docx = None
+
+    # Check in priority order
+    if docx_path.exists():
+        found_path = docx_path
+    elif old_docx.exists():
+        found_path = old_docx
+    elif legacy_docx and legacy_docx.exists():
+        found_path = legacy_docx
+    elif legacy_old_docx and legacy_old_docx.exists():
+        found_path = legacy_old_docx
+    else:
+        found_path = docx_path  # default (doesn't exist)
 
     return {
-        "exists": exists,
-        "docx_path": str(docx_path if docx_path.exists() else old_docx),
+        "exists": found_path.exists(),
+        "docx_path": str(found_path),
         "pdf_path": str(pdf_path),
     }
 

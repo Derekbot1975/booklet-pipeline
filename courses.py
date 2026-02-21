@@ -82,6 +82,7 @@ _DEFAULT_AQA_CONFIG = {
         "AQA GCSE Combined Science: Trilogy (8464)"
     ),
     "prior_knowledge_base": "Students have completed standard KS3 science.",
+    "gdrive_folder_id": "",  # Optional: per-course Google Drive folder ID
     "is_default": True,
 }
 

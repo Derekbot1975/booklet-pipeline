@@ -115,13 +115,17 @@ MIME_TYPES = {
 
 
 def _resolve_folder(service, lesson, root_folder_id):
-    """Resolve (and create if needed) the target Drive folder for a lesson."""
+    """Resolve (and create if needed) the target Drive folder for a lesson.
+
+    The root_folder_id can be overridden per-course. The output_folder on the
+    lesson already includes a course_id prefix (e.g. "aqa-combined-science/Biology/B1/")
+    which keeps different courses separated in Drive.
+    """
     root_folder_id = root_folder_id or os.getenv("GDRIVE_ROOT_FOLDER_ID")
     if not root_folder_id:
         raise RuntimeError(
-            "GDRIVE_ROOT_FOLDER_ID not set. Add it to .env file. "
-            "This is the ID of your 'GCSE Combined Science — Self-Study Booklets' "
-            "folder in Google Drive."
+            "GDRIVE_ROOT_FOLDER_ID not set. Add it to .env file or "
+            "set a per-course Google Drive folder ID in the course settings."
         )
     output_folder = lesson.get("output_folder", "").strip("/")
     if output_folder:

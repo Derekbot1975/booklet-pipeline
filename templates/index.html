@@ -468,6 +468,10 @@
             <label>Subject(s)</label>
             <input type="text" id="upload-subjects" placeholder="e.g. Geography (comma-separate for multi-subject)">
           </div>
+          <div class="form-group">
+            <label>Google Drive Folder ID <span style="color:#86868b; font-weight:normal;">(optional — leave empty to use global folder)</span></label>
+            <input type="text" id="upload-gdrive-folder" placeholder="e.g. 1ILTCxLGW... (from the folder URL in Drive)">
+          </div>
           <div id="upload-error" style="color:#c62828; font-size:13px; margin-top:8px;"></div>
           <div class="actions">
             <button class="btn btn-primary" onclick="uploadStep1()">Upload & Preview</button>
@@ -859,6 +863,7 @@
       document.getElementById('upload-name').value = '';
       document.getElementById('upload-exam-board').value = '';
       document.getElementById('upload-subjects').value = '';
+      document.getElementById('upload-gdrive-folder').value = '';
       document.getElementById('upload-error').textContent = '';
       uploadPreview = null;
       uploadFilePath = null;
@@ -984,10 +989,10 @@
         { key: 'topic', label: 'Topic', required: false },
         { key: 'title', label: 'Lesson Title', required: true },
         { key: 'spec_content', label: 'Spec Content', required: false },
-        { key: 'rp', label: 'Required Practical', required: false },
-        { key: 'key_vocabulary', label: 'Key Vocabulary', required: false },
-        { key: 'ws_ms', label: 'WS / MS Skills', required: false },
-        { key: 'ht_only', label: 'HT Only', required: false },
+        { key: 'rp', label: 'Required Practical (optional)', required: false },
+        { key: 'key_vocabulary', label: 'Key Vocabulary (optional)', required: false },
+        { key: 'ws_ms', label: 'WS / MS Skills (optional)', required: false },
+        { key: 'ht_only', label: 'Higher Tier Only (optional)', required: false },
       ];
 
       // Try to find header row
@@ -1038,6 +1043,7 @@
       const subjectsStr = document.getElementById('upload-subjects').value.trim();
       const headerRow = parseInt(document.getElementById('upload-header-row').value) || 1;
       const fixedSubject = document.getElementById('upload-fixed-subject').value.trim();
+      const gdriveFolderId = document.getElementById('upload-gdrive-folder').value.trim();
 
       // Build col_map
       const colFields = ['week', 'lesson_num', 'subject', 'topic', 'title', 'spec_content', 'rp', 'key_vocabulary', 'ws_ms', 'ht_only'];
@@ -1091,6 +1097,7 @@
         header_row: headerRow,
         col_map: colMap,
         fixed_subject: fixedSubject || null,
+        gdrive_folder_id: gdriveFolderId || '',
         system_prompt_context: `${examBoard ? examBoard + ' ' : ''}${qual ? qual + ' ' : ''}${name}`,
         prior_knowledge_base: `Students have completed the relevant prior learning for this ${qual || 'course'}.`,
       };
