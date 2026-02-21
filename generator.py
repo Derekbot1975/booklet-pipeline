@@ -94,11 +94,19 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    - Section 10: Targets for Next Lesson (1, 2, 3)
    The ONLY exception is the Holistic Recall Starter (1-20 continuous).
 
-5. MARK SCHEME (Section 7) — numbering MUST match the question numbering:
-   Knowledge Chunk 1 — Mark Scheme:  1, 2, 3 …
-   Knowledge Chunk 2 — Mark Scheme:  1, 2, 3 …  (restart, do NOT continue)
-   Application Questions — Mark Scheme:  1, 2, 3 …  (restart, do NOT continue)
-   If Q3 asks about magnification, mark scheme entry 3 MUST be about magnification.
+5. MARK SCHEME (Section 8) — CRITICAL NUMBERING RULES:
+   a. Every mark scheme sub-section heading MUST include the words "Mark Scheme",
+      e.g. "### Holistic Recall — Mark Scheme", "### Knowledge Chunk 1 — Mark Scheme",
+      "### Application Questions — Mark Scheme".  This is mandatory.
+   b. Numbering MUST exactly mirror the corresponding question section:
+      - Holistic Recall — Mark Scheme:          entries 1–20 (matching questions 1–20)
+      - Knowledge Chunk 1 — Mark Scheme:        entries 1, 2, 3 … (matching KC1 questions)
+      - Knowledge Chunk 2 — Mark Scheme:        entries 1, 2, 3 … RESTART — NEVER continue from KC1
+      - Application Questions — Mark Scheme:    entries 1, 2, 3 … RESTART
+   c. CORRESPONDENCE: if Question 3 in Chunk 1 asks about X, then entry 3 in
+      "Knowledge Chunk 1 — Mark Scheme" MUST answer X.  Check this for every entry.
+   d. The number of mark scheme entries for each sub-section MUST equal the number
+      of questions in that sub-section.  Count them before writing.
 
 6. Use tables where appropriate (vocabulary, mark schemes, self-assessment).
 7. Clearly mark Higher-Tier-only content with [HT ONLY] tags.
@@ -220,20 +228,34 @@ def sanitize_markdown(content):
     lines = content.split("\n")
     result = []
     in_section = None  # track which section we're in
+    in_mark_scheme_block = False  # True once inside the overall mark scheme section
     q_counter = 0
 
     for line in lines:
         stripped = line.strip()
 
         # --- Detect current section from headings ---
-        # NOTE: Order matters! More specific matches (mark scheme, knowledge check)
-        # must come BEFORE broader matches (knowledge chunk) to handle headings
-        # like "Knowledge Chunk 2 — Mark Scheme" correctly.
+        # Order matters: more specific checks (mark scheme) before broader ones
+        # (knowledge chunk). "Knowledge Chunk 2 — Mark Scheme" must hit mark_scheme.
         heading_lower = stripped.lstrip("#").strip().lower()
         if stripped.startswith("#"):
+            level = len(stripped) - len(stripped.lstrip("#"))
+
+            # A new level-1 heading (main section) that isn't the mark scheme
+            # exits the block. Level-2+ headings are sub-sections that may stay inside.
+            if level == 1 and "mark scheme" not in heading_lower:
+                in_mark_scheme_block = False
+
             if "mark scheme" in heading_lower:
-                # Must be checked before "knowledge chunk" since headings like
-                # "Knowledge Chunk 2 — Mark Scheme" contain both
+                # Covers: "# Section 8 — Mark Scheme", "## KC1 — Mark Scheme",
+                # "### Holistic Recall — Mark Scheme", etc.
+                in_section = "mark_scheme"
+                in_mark_scheme_block = True
+                q_counter = 0
+            elif in_mark_scheme_block:
+                # Any sub-heading within the mark scheme block (e.g. "### Knowledge
+                # Chunk 1" without "Mark Scheme" in title) — restart counter and
+                # keep renumbering so the output always corresponds to the questions.
                 in_section = "mark_scheme"
                 q_counter = 0
             elif any(kw in heading_lower for kw in [
@@ -264,7 +286,7 @@ def sanitize_markdown(content):
             elif any(kw in heading_lower for kw in [
                 "knowledge chunk", "chunk "
             ]):
-                # New chunk resets question counter
+                # New chunk heading — reset counter; sub-sections detected below
                 q_counter = 0
                 in_section = None
             else:
@@ -591,14 +613,20 @@ def markdown_to_docx(md_path, lesson=None):
         # --- Numbered list ---
         num_match = re.match(r"^(\d+)\.\s+(.+)", stripped)
         if num_match:
-            # Context-aware: force bullets in knowledge content / worked example
+            num = num_match.group(1)
+            text = num_match.group(2)
             if current_section in ("knowledge_content", "worked_example"):
+                # Force to bullets — number is irrelevant
                 p = doc.add_paragraph(style="List Bullet")
-                _add_formatted_text(p, num_match.group(2))
+                _add_formatted_text(p, text)
             else:
-                p = doc.add_paragraph(style="List Number")
-                _add_formatted_text(p, num_match.group(2))
-                # Add answer space after knowledge check and application questions
+                # Use explicit number as text — NOT Word's auto-numbering (List
+                # Number style) which continues across the whole document and
+                # would make KC2 Q1 appear as Q4, etc.
+                p = doc.add_paragraph()
+                p.paragraph_format.left_indent = Cm(0.63)
+                _add_formatted_text(p, f"{num}. {text}")
+                # Add answer space after questions
                 if current_section in ("knowledge_check", "application_questions"):
                     for _ in range(5):
                         blank = doc.add_paragraph()

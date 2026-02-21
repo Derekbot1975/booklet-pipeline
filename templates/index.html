@@ -163,6 +163,7 @@
       <span class="stat-badge">{{ subj }}: {{ count }}</span>
       {% endfor %}
       <button class="btn btn-success btn-sm" onclick="openBatchModal()">Generate All Booklets</button>
+      <button class="btn btn-secondary btn-sm" onclick="openReprocessModal()">Fix Numbering</button>
       <button class="btn btn-secondary btn-sm" onclick="exportPrompts()">Export All Prompts</button>
       <button class="btn btn-secondary btn-sm" onclick="openSettings()" id="settings-btn">Settings</button>
     </div>
@@ -340,6 +341,47 @@
           <div class="batch-summary" id="batch-summary"></div>
           <div class="actions" style="margin-top:16px; justify-content:center;">
             <button class="btn btn-primary" onclick="closeBatchModal()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reprocess Modal -->
+  <div class="modal-overlay" id="reprocess-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Fix Numbering — Reprocess All Booklets</h2>
+        <button class="modal-close" onclick="closeReprocessModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="reprocess-setup">
+          <p style="margin-bottom:10px;">
+            Re-sanitises every generated <code>.md</code> file and rebuilds its
+            <code>.docx</code> and <code>.pdf</code> using the latest formatting rules.
+          </p>
+          <p style="margin-bottom:10px; color:#86868b; font-size:13px;">
+            This fixes question numbering that continues across chunks, mark scheme entries that don't
+            correspond to their questions, and other formatting inconsistencies — without calling the Claude API.
+            It cannot fix cases where Claude wrote the wrong answer for a question (those need regeneration).
+          </p>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="startReprocess()">Reprocess All Booklets</button>
+            <button class="btn btn-secondary" onclick="closeReprocessModal()">Cancel</button>
+          </div>
+        </div>
+        <div id="reprocess-running" style="display:none;">
+          <div class="batch-progress">
+            <div class="batch-bar"><div class="batch-bar-fill" id="reprocess-bar" style="width:0%"></div></div>
+            <div class="batch-counter" id="reprocess-counter">0 / 0</div>
+          </div>
+          <p id="reprocess-current" style="text-align:center; color:#86868b; margin-top:4px; font-size:13px;"></p>
+          <div class="batch-log" id="reprocess-log"></div>
+        </div>
+        <div id="reprocess-complete" style="display:none;">
+          <div class="batch-summary" id="reprocess-summary"></div>
+          <div class="actions" style="margin-top:16px; justify-content:center;">
+            <button class="btn btn-primary" onclick="closeReprocessModal()">Close</button>
           </div>
         </div>
       </div>
@@ -1421,6 +1463,86 @@
       document.getElementById('btn-cancel-batch').textContent = 'Cancelling...';
     }
 
+    // ─── Reprocess Modal ───
+
+    function openReprocessModal() {
+      document.getElementById('reprocess-modal').classList.add('open');
+      document.getElementById('reprocess-setup').style.display = 'block';
+      document.getElementById('reprocess-running').style.display = 'none';
+      document.getElementById('reprocess-complete').style.display = 'none';
+    }
+
+    function closeReprocessModal() {
+      document.getElementById('reprocess-modal').classList.remove('open');
+    }
+
+    function startReprocess() {
+      document.getElementById('reprocess-setup').style.display = 'none';
+      document.getElementById('reprocess-running').style.display = 'block';
+      document.getElementById('reprocess-log').innerHTML = '';
+      document.getElementById('reprocess-bar').style.width = '0%';
+      document.getElementById('reprocess-counter').textContent = 'Starting...';
+      document.getElementById('reprocess-current').textContent = '';
+
+      fetch('/api/reprocess-all', { method: 'POST' }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        function processStream() {
+          reader.read().then(({ done, value }) => {
+            if (done) return;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try { handleReprocessEvent(JSON.parse(line.slice(6))); } catch(e) {}
+              }
+            }
+            processStream();
+          });
+        }
+        processStream();
+      }).catch(err => {
+        document.getElementById('reprocess-log').innerHTML += `<div class="log-item">❌ Error: ${err.message}</div>`;
+      });
+    }
+
+    function handleReprocessEvent(event) {
+      const log = document.getElementById('reprocess-log');
+      switch(event.type) {
+        case 'start':
+          document.getElementById('reprocess-counter').textContent = `0 / ${event.total}`;
+          break;
+        case 'progress':
+          document.getElementById('reprocess-counter').textContent = `${event.current} / ${event.total}`;
+          document.getElementById('reprocess-bar').style.width = `${(event.current / event.total) * 100}%`;
+          document.getElementById('reprocess-current').textContent = event.file;
+          log.innerHTML += `<div class="log-item">✅ ${event.file}</div>`;
+          log.scrollTop = log.scrollHeight;
+          break;
+        case 'error':
+          log.innerHTML += `<div class="log-item">❌ ${event.file} — ${event.error}</div>`;
+          log.scrollTop = log.scrollHeight;
+          break;
+        case 'complete':
+          document.getElementById('reprocess-running').style.display = 'none';
+          document.getElementById('reprocess-complete').style.display = 'block';
+          const div = document.getElementById('reprocess-summary');
+          div.className = `batch-summary ${event.errors > 0 ? 'has-errors' : ''}`;
+          div.innerHTML = `
+            <h3 style="margin:0 0 8px;">Reprocess Complete</h3>
+            <p><b>${event.done}</b> booklets updated</p>
+            ${event.errors > 0 ? `<p style="color:#c62828"><b>${event.errors}</b> errors</p>` : ''}
+            <p style="font-size:13px; color:#86868b; margin-top:8px;">Numbering has been corrected in all .docx and .pdf files.</p>
+          `;
+          fetchLessons();
+          fetchProgress();
+          break;
+      }
+    }
+
     // ─── Settings Modal ───
 
     async function openSettings() {
@@ -1451,6 +1573,9 @@
     });
     document.getElementById('upload-modal').addEventListener('click', (e) => {
       if (e.target === document.getElementById('upload-modal')) closeUploadModal();
+    });
+    document.getElementById('reprocess-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('reprocess-modal')) closeReprocessModal();
     });
 
     async function refreshConfigStatus() {

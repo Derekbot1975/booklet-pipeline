@@ -598,6 +598,50 @@ def api_cancel_batch():
 
 
 # ========================================================================
+# Reprocess existing booklets — re-sanitise markdown + rebuild docx/pdf
+# ========================================================================
+
+@app.route("/api/reprocess-all", methods=["POST"])
+def api_reprocess_all():
+    """
+    Re-sanitise every .md file in the output directory and rebuild its
+    .docx and .pdf.  Used to apply numbering/formatting fixes to booklets
+    that were generated with an older version of the pipeline.
+    """
+    from generator import sanitize_markdown, markdown_to_docx, convert_to_pdf, OUTPUT_DIR
+
+    def stream():
+        md_files = sorted(Path(OUTPUT_DIR).rglob("*.md"))
+        total = len(md_files)
+        yield f"data: {json.dumps({'type': 'start', 'total': total})}\n\n"
+
+        done = errors = 0
+        for i, md_path in enumerate(md_files):
+            try:
+                content = md_path.read_text(encoding="utf-8")
+                clean = sanitize_markdown(content)
+                md_path.write_text(clean, encoding="utf-8")
+
+                docx_path = markdown_to_docx(str(md_path))
+                convert_to_pdf(docx_path)
+
+                done += 1
+                yield f"data: {json.dumps({'type': 'progress', 'current': i + 1, 'total': total, 'file': md_path.name})}\n\n"
+            except Exception as e:
+                errors += 1
+                logger.error(f"Reprocess failed for {md_path.name}: {e}")
+                yield f"data: {json.dumps({'type': 'error', 'file': md_path.name, 'error': str(e)})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'complete', 'done': done, 'errors': errors, 'total': total})}\n\n"
+
+    return Response(
+        stream(),
+        mimetype="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+# ========================================================================
 # Validate .docx
 # ========================================================================
 
