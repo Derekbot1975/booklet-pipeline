@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN_FILE = Path(__file__).parent / "gdrive_token.json"
-SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
 def _get_credentials():
