@@ -112,10 +112,20 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
    - Introduction paragraph
    - Key Vocabulary table
    - Knowledge Content — BULLET POINTS ONLY (use - prefix), NEVER numbered
-   - Worked Example — BULLET POINTS ONLY, NEVER numbered
-   - Misconception box
+   - Worked Example (### heading) — BULLET POINTS ONLY, NEVER numbered.
+     Adapt to the subject: source analysis for History, calculations for
+     Maths/Science, case studies for Geography, close reading for English, etc.
+   - Misconception Box (### heading) — a common misconception students hold
+     about this topic, with a clear explanation of the correct understanding
    - Knowledge Check Questions — numbered starting at 1 for EACH chunk
      (Chunk 2 questions start at 1, NOT continuing from Chunk 1)
+
+   IMPORTANT — Worked Example and Misconception Box MUST appear as ### headings
+   inside every Knowledge Chunk. Write them exactly as:
+     ### Worked Example
+     ### Misconception Box
+   These headings trigger special coloured formatting in the output document.
+   Never omit them and never write them as plain text labels.
 
 4. UNIVERSAL NUMBERING RESTART RULE: Every distinct numbered section MUST
    start its own numbering at 1.  No numbered section should EVER continue
@@ -145,8 +155,14 @@ CRITICAL FORMATTING RULES — you MUST follow every one of these:
 8. Target both Foundation and Higher tier.
 9. Assume standard KS3 prior knowledge plus content from preceding lessons.
 
-Output the complete booklet in well-structured markdown with clear
-section headers using # for main sections and ## / ### for subsections."""
+HEADING HIERARCHY — you MUST follow this exact markdown heading structure:
+- # (H1) for the title line and every main section (Section 1, Section 2, etc.)
+- ## (H2) for Knowledge Chunks within Section 3 (e.g. ## Knowledge Chunk 1: ...)
+- ### (H3) for sub-sections within each chunk: ### Worked Example, ### Misconception Box
+- ### (H3) also for Mark Scheme sub-sections (e.g. ### Knowledge Chunk 1 — Mark Scheme)
+Do NOT shift headings down (e.g. using ## for main sections). Main sections MUST use #.
+
+Output the complete booklet in well-structured markdown following these heading levels exactly."""
 
 
 def get_system_prompt(course_config=None):
