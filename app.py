@@ -260,9 +260,78 @@ def api_update_scheme_preview(course_id):
     file.save(str(save_path))
 
     from generic_parser import parse_course, compare_schemes
+    import openpyxl
 
     new_config = dict(config)
     new_config["xlsx_path"] = str(save_path)
+
+    # ── Auto-remap sheet names if they changed ──
+    try:
+        wb = openpyxl.load_workbook(str(save_path), read_only=True)
+        actual_sheets = wb.sheetnames
+        wb.close()
+    except Exception as e:
+        return jsonify({"error": f"Could not open spreadsheet: {e}"}), 400
+
+    sheet_remap = {}
+    new_sheets = list(new_config.get("sheets", []))
+    for i, sheet_info in enumerate(new_sheets):
+        old_name = sheet_info["name"]
+        if old_name in actual_sheets:
+            continue  # exact match, no remap needed
+        year = sheet_info["year"]
+        # Try fuzzy match: find a sheet containing the year number
+        # and a keyword like "lesson" (case-insensitive)
+        candidates = []
+        for sn in actual_sheets:
+            sn_lower = sn.lower().replace("_", " ")
+            if str(year) in sn and "lesson" in sn_lower:
+                candidates.append(sn)
+        if len(candidates) == 1:
+            sheet_remap[old_name] = candidates[0]
+            new_sheets[i] = {**sheet_info, "name": candidates[0]}
+        elif not candidates:
+            # Broader match: just contains the year number
+            for sn in actual_sheets:
+                if str(year) in sn and sn not in [s["name"] for s in new_sheets[:i]]:
+                    candidates.append(sn)
+            if len(candidates) == 1:
+                sheet_remap[old_name] = candidates[0]
+                new_sheets[i] = {**sheet_info, "name": candidates[0]}
+
+    new_config["sheets"] = new_sheets
+
+    # ── Auto-detect column changes ──
+    # Check if header row columns shifted by comparing expected headers
+    col_warnings = []
+    for sheet_info in new_sheets:
+        sn = sheet_info["name"]
+        if sn not in actual_sheets:
+            continue
+        try:
+            wb2 = openpyxl.load_workbook(str(save_path), read_only=True)
+            ws = wb2[sn]
+            header_row_idx = new_config.get("header_row", 1)
+            for ri, row in enumerate(ws.iter_rows(max_row=header_row_idx + 1, values_only=True), 1):
+                if ri == header_row_idx + 1:
+                    headers = [str(c).strip().lower() if c else "" for c in row]
+            wb2.close()
+
+            col_map = new_config.get("col_map", {})
+            # Check that key columns still look right
+            for field, idx in col_map.items():
+                if idx < len(headers):
+                    h = headers[idx]
+                    # Basic sanity: if 'topic' column now says 'disciplinary' or 'progression', flag it
+                    if field == "topic" and ("disciplin" in h or "progression" in h):
+                        # Try to find the actual topic/substantive column
+                        for ni, nh in enumerate(headers):
+                            if "substantive" in nh or "concept" in nh and "second" not in nh:
+                                col_warnings.append(f"Column '{field}' remapped from {idx} to {ni} (was '{headers[idx]}', now '{nh}')")
+                                new_config.setdefault("col_map", {})[field] = ni
+                                break
+        except Exception:
+            pass
 
     try:
         new_data = parse_course(new_config)
@@ -310,6 +379,10 @@ def api_update_scheme_preview(course_id):
             ],
         },
         "new_stats": new_data["stats"],
+        "sheet_remap": sheet_remap,
+        "col_remap": {k: v for k, v in new_config.get("col_map", {}).items()},
+        "col_warnings": col_warnings,
+        "new_sheets": new_sheets,
     })
 
 
@@ -325,6 +398,8 @@ def api_apply_scheme_update(course_id):
     delete_removed = body.get("delete_removed", True)
     reset_modified = body.get("reset_modified", True)
     delete_from_drive = body.get("delete_from_drive", False)
+    new_sheets = body.get("new_sheets")  # remapped sheet names from preview
+    col_remap = body.get("col_remap")    # remapped column indices from preview
 
     if not new_xlsx_path:
         return jsonify({"error": "new_xlsx_path required"}), 400
@@ -339,6 +414,11 @@ def api_apply_scheme_update(course_id):
 
     new_config = dict(config)
     new_config["xlsx_path"] = new_xlsx_path
+    if new_sheets:
+        new_config["sheets"] = new_sheets
+    if col_remap:
+        # col_remap values come as strings from JSON; convert to int
+        new_config["col_map"] = {k: int(v) for k, v in col_remap.items()}
     new_data = parse_course(new_config)
 
     diff = compare_schemes(
@@ -396,8 +476,12 @@ def api_apply_scheme_update(course_id):
             [f"Y{y}_L{n:03d}" for y, n in modified_keys]
         )
 
-    # Update course config with new spreadsheet path
+    # Update course config with new spreadsheet path, sheets, and col_map
     config["xlsx_path"] = new_xlsx_path
+    if new_sheets:
+        config["sheets"] = new_sheets
+    if col_remap:
+        config["col_map"] = {k: int(v) for k, v in col_remap.items()}
     courses.save_course(config)
 
     # Clear cache to force re-parse

@@ -6,10 +6,10 @@
   "subjects": [
     "History"
   ],
-  "xlsx_path": "/Users/derek/booklet-pipeline/uploads/History_KS3_Scheme_of_Work.xlsx",
+  "xlsx_path": "/Users/derek/booklet-pipeline/uploads/History_KS3_Scheme_of_Work_REVISED.xlsx",
   "sheets": [
     {
-      "name": "Year 7 Lessons",
+      "name": "Year_7_Lessons",
       "year": 7
     },
     {
@@ -26,7 +26,7 @@
     "week": 0,
     "lesson_num": 1,
     "subject": 2,
-    "topic": 7,
+    "topic": 8,
     "title": 3,
     "spec_content": 4,
     "key_vocabulary": 5,

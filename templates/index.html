@@ -920,6 +920,8 @@
     // ─── Update Scheme of Work ───
 
     let updateSchemeXlsxPath = null;
+    let updateSchemeSheets = null;
+    let updateSchemeColRemap = null;
 
     function openUpdateSchemeModal() {
       const sel = document.getElementById('course-selector');
@@ -933,6 +935,8 @@
       document.getElementById('update-upload-error').textContent = '';
       document.getElementById('update-apply-error').textContent = '';
       updateSchemeXlsxPath = null;
+      updateSchemeSheets = null;
+      updateSchemeColRemap = null;
       document.getElementById('update-scheme-modal').classList.add('open');
     }
 
@@ -970,11 +974,28 @@
         }
 
         updateSchemeXlsxPath = data.new_xlsx_path;
+        updateSchemeSheets = data.new_sheets || null;
+        updateSchemeColRemap = data.col_remap || null;
         const diff = data.diff;
         const s = diff.summary;
 
+        // Show sheet/column remap warnings if any
+        let warningHtml = '';
+        if (data.sheet_remap && Object.keys(data.sheet_remap).length) {
+          warningHtml += '<div style="background:#fff3e0; padding:8px 12px; border-radius:6px; margin-bottom:10px; font-size:13px;">';
+          warningHtml += '<b>Sheet names remapped:</b> ';
+          warningHtml += Object.entries(data.sheet_remap).map(([o, n]) => `"${o}" → "${n}"`).join(', ');
+          warningHtml += '</div>';
+        }
+        if (data.col_warnings && data.col_warnings.length) {
+          warningHtml += '<div style="background:#fff3e0; padding:8px 12px; border-radius:6px; margin-bottom:10px; font-size:13px;">';
+          warningHtml += '<b>Column adjustments:</b> ' + data.col_warnings.join('; ');
+          warningHtml += '</div>';
+        }
+
         // Build summary badges
-        let summaryHtml = '<div style="display:flex; gap:12px; flex-wrap:wrap;">';
+        let summaryHtml = warningHtml;
+        summaryHtml += '<div style="display:flex; gap:12px; flex-wrap:wrap;">';
         summaryHtml += `<span class="stat-badge" style="background:#e8f5e9; color:#2e7d32;">${s.added} added</span>`;
         summaryHtml += `<span class="stat-badge" style="background:#fff3e0; color:#e65100;">${s.modified} modified</span>`;
         summaryHtml += `<span class="stat-badge" style="background:#ffebee; color:#c62828;">${s.removed} removed</span>`;
@@ -1041,6 +1062,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             new_xlsx_path: updateSchemeXlsxPath,
+            new_sheets: updateSchemeSheets,
+            col_remap: updateSchemeColRemap,
             delete_removed: document.getElementById('update-delete-removed').checked,
             delete_from_drive: document.getElementById('update-delete-drive').checked,
             reset_modified: document.getElementById('update-reset-modified').checked,
