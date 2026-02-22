@@ -238,6 +238,184 @@ def api_save_course():
 
 
 # ========================================================================
+# Update Scheme of Work API
+# ========================================================================
+
+@app.route("/api/courses/<course_id>/update-scheme", methods=["POST"])
+def api_update_scheme_preview(course_id):
+    """Upload a new spreadsheet and preview what will change (non-destructive)."""
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "Course not found"}), 404
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    if not file.filename.endswith((".xlsx", ".xls")):
+        return jsonify({"error": "Only .xlsx or .xls files supported"}), 400
+
+    safe_name = file.filename.replace(" ", "_")
+    save_path = UPLOADS_DIR / safe_name
+    file.save(str(save_path))
+
+    from generic_parser import parse_course, compare_schemes
+
+    new_config = dict(config)
+    new_config["xlsx_path"] = str(save_path)
+
+    try:
+        new_data = parse_course(new_config)
+    except Exception as e:
+        return jsonify({"error": f"Could not parse spreadsheet: {e}"}), 400
+
+    try:
+        old_data = get_data(course_id)
+    except Exception:
+        old_data = {"booklet_lessons": [], "all_lessons": []}
+
+    diff = compare_schemes(
+        old_data["booklet_lessons"],
+        new_data["booklet_lessons"]
+    )
+
+    return jsonify({
+        "new_xlsx_path": str(save_path),
+        "diff": {
+            "summary": diff["summary"],
+            "modified": [
+                {
+                    "year": m["key"][0],
+                    "lesson_number": m["key"][1],
+                    "old_title": m["old"].get("title", ""),
+                    "new_title": m["new"].get("title", ""),
+                }
+                for m in diff["modified"]
+            ],
+            "added": [
+                {
+                    "year": a["key"][0],
+                    "lesson_number": a["key"][1],
+                    "title": a["new"].get("title", ""),
+                }
+                for a in diff["added"]
+            ],
+            "removed": [
+                {
+                    "year": r["key"][0],
+                    "lesson_number": r["key"][1],
+                    "title": r["old"].get("title", ""),
+                }
+                for r in diff["removed"]
+            ],
+        },
+        "new_stats": new_data["stats"],
+    })
+
+
+@app.route("/api/courses/<course_id>/apply-update", methods=["POST"])
+def api_apply_scheme_update(course_id):
+    """Apply a previously previewed scheme update (destructive, user-confirmed)."""
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "Course not found"}), 404
+
+    body = request.get_json() or {}
+    new_xlsx_path = body.get("new_xlsx_path")
+    delete_removed = body.get("delete_removed", True)
+    reset_modified = body.get("reset_modified", True)
+    delete_from_drive = body.get("delete_from_drive", False)
+
+    if not new_xlsx_path:
+        return jsonify({"error": "new_xlsx_path required"}), 400
+
+    from generic_parser import parse_course, compare_schemes
+    from generator import delete_lesson_files_from_disk
+
+    try:
+        old_data = get_data(course_id)
+    except Exception:
+        old_data = {"booklet_lessons": [], "all_lessons": []}
+
+    new_config = dict(config)
+    new_config["xlsx_path"] = new_xlsx_path
+    new_data = parse_course(new_config)
+
+    diff = compare_schemes(
+        old_data["booklet_lessons"],
+        new_data["booklet_lessons"]
+    )
+
+    results = {
+        "disk_deleted": [],
+        "drive_deleted": [],
+        "progress_cleared": [],
+        "errors": [],
+    }
+
+    # Handle removed lessons
+    if delete_removed and diff["removed"]:
+        for item in diff["removed"]:
+            lesson = item["old"]
+            try:
+                disk_result = delete_lesson_files_from_disk(lesson)
+                results["disk_deleted"].extend(disk_result["deleted"])
+            except Exception as e:
+                results["errors"].append(
+                    f"Disk delete failed for Y{lesson['year']}_L{lesson['lesson_number']}: {e}"
+                )
+
+            if delete_from_drive:
+                try:
+                    from gdrive import delete_lesson_files_from_drive
+                    drive_folder = config.get("gdrive_folder_id") or None
+                    drive_result = delete_lesson_files_from_drive(
+                        lesson, root_folder_id=drive_folder
+                    )
+                    results["drive_deleted"].extend(drive_result["deleted"])
+                    results["errors"].extend(drive_result["errors"])
+                except Exception as e:
+                    results["errors"].append(
+                        f"Drive delete failed for Y{lesson['year']}_L{lesson['lesson_number']}: {e}"
+                    )
+
+        removed_keys = [
+            (item["old"]["year"], item["old"]["lesson_number"])
+            for item in diff["removed"]
+        ]
+        tracker.clear_lessons(removed_keys, course_id)
+        results["progress_cleared"].extend(
+            [f"Y{y}_L{n:03d}" for y, n in removed_keys]
+        )
+
+    # Handle modified lessons — reset progress so they get regenerated
+    if reset_modified and diff["modified"]:
+        modified_keys = [(m["key"][0], m["key"][1]) for m in diff["modified"]]
+        tracker.clear_lessons(modified_keys, course_id)
+        results["progress_cleared"].extend(
+            [f"Y{y}_L{n:03d}" for y, n in modified_keys]
+        )
+
+    # Update course config with new spreadsheet path
+    config["xlsx_path"] = new_xlsx_path
+    courses.save_course(config)
+
+    # Clear cache to force re-parse
+    _course_data.pop(course_id, None)
+
+    try:
+        get_data(course_id)
+    except Exception as e:
+        results["errors"].append(f"Re-parse failed: {e}")
+
+    return jsonify({
+        "success": True,
+        "results": results,
+        "diff_summary": diff["summary"],
+    })
+
+
+# ========================================================================
 # Lessons API
 # ========================================================================
 

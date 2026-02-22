@@ -1,7 +1,10 @@
 # Environment & secrets
 .env
-client_secret.json
+client_secret*.json
 gdrive_token.json
+
+# Uploaded spreadsheets
+uploads/
 
 # Python
 __pycache__/

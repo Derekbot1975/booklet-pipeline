@@ -353,3 +353,55 @@ def preview_spreadsheet(xlsx_path, sheet_name=None, max_rows=10):
 
     wb.close()
     return result
+
+
+def compare_schemes(old_lessons, new_lessons):
+    """Compare old and new lesson lists to identify changes.
+
+    Uses (year, lesson_number) as the key for matching.
+    Compares title + spec_content to detect modifications.
+
+    Returns dict with unchanged, modified, added, removed lists and summary.
+    """
+    old_by_key = {}
+    for l in old_lessons:
+        key = (l["year"], l["lesson_number"])
+        old_by_key[key] = l
+
+    new_by_key = {}
+    for l in new_lessons:
+        key = (l["year"], l["lesson_number"])
+        new_by_key[key] = l
+
+    old_keys = set(old_by_key.keys())
+    new_keys = set(new_by_key.keys())
+
+    unchanged, modified, added, removed = [], [], [], []
+
+    for key in old_keys & new_keys:
+        old_l = old_by_key[key]
+        new_l = new_by_key[key]
+        if (old_l.get("title") == new_l.get("title") and
+                old_l.get("spec_content") == new_l.get("spec_content")):
+            unchanged.append({"key": key, "old": old_l, "new": new_l})
+        else:
+            modified.append({"key": key, "old": old_l, "new": new_l})
+
+    for key in new_keys - old_keys:
+        added.append({"key": key, "new": new_by_key[key]})
+
+    for key in old_keys - new_keys:
+        removed.append({"key": key, "old": old_by_key[key]})
+
+    return {
+        "unchanged": unchanged,
+        "modified": modified,
+        "added": added,
+        "removed": removed,
+        "summary": {
+            "unchanged": len(unchanged),
+            "modified": len(modified),
+            "added": len(added),
+            "removed": len(removed),
+        },
+    }

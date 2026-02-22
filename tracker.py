@@ -93,3 +93,30 @@ def bulk_set_status(lessons_keys, status, course_id=None):
     for year, lesson_num in lessons_keys:
         data[_key(year, lesson_num, course_id)] = status
     _save(data)
+
+
+def clear_lessons(lessons_keys, course_id=None):
+    """Remove progress entries for specific lessons.
+    lessons_keys: list of (year, lesson_num) tuples
+    Returns list of keys that were removed.
+    """
+    data = _migrate_if_needed(_load())
+    removed = []
+    for year, lesson_num in lessons_keys:
+        k = _key(year, lesson_num, course_id)
+        if k in data:
+            del data[k]
+            removed.append(k)
+    _save(data)
+    return removed
+
+
+def clear_course(course_id):
+    """Remove ALL progress entries for a course."""
+    data = _migrate_if_needed(_load())
+    prefix = f"{course_id}{_SEPARATOR}"
+    keys_to_remove = [k for k in data if k.startswith(prefix)]
+    for k in keys_to_remove:
+        del data[k]
+    _save(data)
+    return keys_to_remove

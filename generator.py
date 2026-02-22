@@ -1231,6 +1231,49 @@ def check_existing_booklet(lesson):
     }
 
 
+def delete_lesson_files_from_disk(lesson):
+    """Delete all booklet files (.md, .docx, .pdf) for a lesson from disk.
+
+    Uses check_existing_booklet() to find files regardless of path layout.
+    Returns dict with 'deleted' (list of paths removed) and 'not_found' count.
+    """
+    result = {"deleted": [], "not_found": 0}
+
+    existing = check_existing_booklet(lesson)
+    if not existing["exists"]:
+        return result
+
+    docx_path = Path(existing["docx_path"])
+    base_dir = docx_path.parent
+    stem = docx_path.stem
+
+    for ext in [".md", ".docx", ".pdf"]:
+        target = base_dir / f"{stem}{ext}"
+        if target.exists():
+            target.unlink()
+            result["deleted"].append(str(target))
+        else:
+            result["not_found"] += 1
+
+    # Clean up empty parent directories up to OUTPUT_DIR
+    try:
+        parent = base_dir
+        while parent != OUTPUT_DIR and parent.exists():
+            if not any(p for p in parent.iterdir() if p.name != ".DS_Store"):
+                # Remove .DS_Store too if it's the only thing left
+                ds = parent / ".DS_Store"
+                if ds.exists():
+                    ds.unlink()
+                parent.rmdir()
+                parent = parent.parent
+            else:
+                break
+    except OSError:
+        pass
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Save markdown
 # ---------------------------------------------------------------------------

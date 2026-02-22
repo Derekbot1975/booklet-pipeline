@@ -224,6 +224,50 @@ def upload_booklet(docx_path, lesson, root_folder_id=None):
     return results
 
 
+def delete_lesson_files_from_drive(lesson, root_folder_id=None):
+    """Delete booklet files for a lesson from Google Drive.
+
+    Searches for files matching the lesson number prefix in the resolved
+    folder path. Returns dict with 'deleted' and 'errors' lists.
+    """
+    service = _get_service()
+    root_folder_id = root_folder_id or os.getenv("GDRIVE_ROOT_FOLDER_ID")
+    if not root_folder_id:
+        return {"deleted": [], "errors": ["No Drive root folder configured"]}
+
+    result = {"deleted": [], "errors": []}
+    search_prefix = f"L{lesson['lesson_number']:03d} - "
+
+    # Try to find the folder; fall back to root if not found
+    try:
+        folder_id, _ = _resolve_folder(service, lesson, root_folder_id)
+    except Exception:
+        folder_id = root_folder_id
+
+    safe_prefix = _escape_query(search_prefix)
+    query = (
+        f"name contains '{safe_prefix}' and "
+        f"'{folder_id}' in parents and "
+        f"trashed=false"
+    )
+
+    try:
+        files = service.files().list(
+            q=query, spaces="drive", fields="files(id, name)"
+        ).execute().get("files", [])
+
+        for f in files:
+            try:
+                service.files().delete(fileId=f["id"]).execute()
+                result["deleted"].append(f["name"])
+            except Exception as e:
+                result["errors"].append(f"Failed to delete {f['name']}: {e}")
+    except Exception as e:
+        result["errors"].append(f"Search failed: {e}")
+
+    return result
+
+
 def check_connection():
     """Test Google Drive connection and return account info."""
     try:

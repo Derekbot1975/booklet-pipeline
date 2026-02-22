@@ -179,6 +179,7 @@
       {% endfor %}
     </select>
     <button class="btn btn-primary btn-sm" onclick="openUploadModal()">+ Add Course</button>
+    <button class="btn btn-secondary btn-sm" onclick="openUpdateSchemeModal()" id="btn-update-scheme" style="display:{{ 'none' if active_course.is_default else 'inline-flex' }}">Update Scheme</button>
     <button class="btn btn-secondary btn-sm" onclick="deleteCourse()" id="btn-delete-course" style="display:{{ 'none' if active_course.is_default else 'inline-flex' }}">Delete Course</button>
   </div>
 
@@ -520,6 +521,69 @@
     </div>
   </div>
 
+  <!-- Update Scheme of Work Modal -->
+  <div class="modal-overlay" id="update-scheme-modal">
+    <div class="modal wide">
+      <div class="modal-header">
+        <h2>Update Scheme of Work</h2>
+        <button class="modal-close" onclick="closeUpdateSchemeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Step 1: Upload -->
+        <div id="update-step-upload">
+          <p style="font-size:14px; margin-bottom:12px;">
+            Upload a new spreadsheet to replace the current scheme of work for
+            <b id="update-course-name"></b>. Column mapping and course settings will stay the same.
+          </p>
+          <div class="form-group">
+            <label>New Scheme of Work (.xlsx)</label>
+            <input type="file" id="update-file" accept=".xlsx,.xls">
+          </div>
+          <div id="update-upload-error" style="color:#c62828; font-size:13px; margin-top:8px;"></div>
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn btn-primary" onclick="updateSchemeUpload()" id="btn-update-upload">Upload &amp; Compare</button>
+            <button class="btn btn-secondary" onclick="closeUpdateSchemeModal()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Confirm -->
+        <div id="update-step-confirm" style="display:none;">
+          <h3 style="margin-bottom:12px; color:#1d1d1f; text-transform:none;">Changes Detected</h3>
+          <div id="update-diff-summary" style="margin-bottom:16px;"></div>
+          <div id="update-diff-details" style="max-height:300px; overflow-y:auto; margin-bottom:16px; font-size:13px;"></div>
+          <div style="background:#f5f5f7; padding:12px; border-radius:8px; margin-bottom:16px;">
+            <h4 style="font-size:13px; font-weight:600; margin-bottom:8px;">Cleanup Options</h4>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:6px; cursor:pointer;">
+              <input type="checkbox" id="update-delete-removed" checked> Delete booklet files for removed lessons (from disk)
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:6px; cursor:pointer;">
+              <input type="checkbox" id="update-delete-drive"> Also delete removed lesson files from Google Drive
+            </label>
+            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+              <input type="checkbox" id="update-reset-modified" checked> Reset progress for modified lessons (so they can be regenerated)
+            </label>
+          </div>
+          <div id="update-apply-error" style="color:#c62828; font-size:13px; margin-top:8px;"></div>
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn btn-secondary" onclick="updateSchemeBack()">Back</button>
+            <button class="btn btn-primary" onclick="applySchemeUpdate()" id="btn-apply-update" style="background:#c62828;">Apply Update</button>
+            <button class="btn btn-secondary" onclick="closeUpdateSchemeModal()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Results -->
+        <div id="update-step-results" style="display:none;">
+          <div id="update-results-content"></div>
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn btn-primary" onclick="closeUpdateSchemeAndReload()">Done</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
@@ -851,6 +915,174 @@
       } catch(e) {
         showToast('Error: ' + e.message);
       }
+    }
+
+    // ─── Update Scheme of Work ───
+
+    let updateSchemeXlsxPath = null;
+
+    function openUpdateSchemeModal() {
+      const sel = document.getElementById('course-selector');
+      const courseName = sel.options[sel.selectedIndex].text;
+      document.getElementById('update-course-name').textContent = courseName;
+      // Reset to step 1
+      document.getElementById('update-step-upload').style.display = '';
+      document.getElementById('update-step-confirm').style.display = 'none';
+      document.getElementById('update-step-results').style.display = 'none';
+      document.getElementById('update-file').value = '';
+      document.getElementById('update-upload-error').textContent = '';
+      document.getElementById('update-apply-error').textContent = '';
+      updateSchemeXlsxPath = null;
+      document.getElementById('update-scheme-modal').classList.add('open');
+    }
+
+    function closeUpdateSchemeModal() {
+      document.getElementById('update-scheme-modal').classList.remove('open');
+    }
+
+    async function updateSchemeUpload() {
+      const fileInput = document.getElementById('update-file');
+      const errEl = document.getElementById('update-upload-error');
+      errEl.textContent = '';
+
+      if (!fileInput.files.length) {
+        errEl.textContent = 'Please select a file.';
+        return;
+      }
+
+      const courseId = document.getElementById('course-selector').value;
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      const btn = document.getElementById('btn-update-upload');
+      btn.disabled = true;
+      btn.textContent = 'Comparing...';
+
+      try {
+        const res = await fetch(`/api/courses/${courseId}/update-scheme`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.error) {
+          errEl.textContent = data.error;
+          return;
+        }
+
+        updateSchemeXlsxPath = data.new_xlsx_path;
+        const diff = data.diff;
+        const s = diff.summary;
+
+        // Build summary badges
+        let summaryHtml = '<div style="display:flex; gap:12px; flex-wrap:wrap;">';
+        summaryHtml += `<span class="stat-badge" style="background:#e8f5e9; color:#2e7d32;">${s.added} added</span>`;
+        summaryHtml += `<span class="stat-badge" style="background:#fff3e0; color:#e65100;">${s.modified} modified</span>`;
+        summaryHtml += `<span class="stat-badge" style="background:#ffebee; color:#c62828;">${s.removed} removed</span>`;
+        summaryHtml += `<span class="stat-badge">${s.unchanged} unchanged</span>`;
+        summaryHtml += '</div>';
+        document.getElementById('update-diff-summary').innerHTML = summaryHtml;
+
+        // Build detail tables
+        let detailHtml = '';
+        if (diff.added.length) {
+          detailHtml += '<h4 style="color:#2e7d32; margin:8px 0 4px;">Added</h4><table style="width:100%; border-collapse:collapse;">';
+          for (const a of diff.added) {
+            detailHtml += `<tr style="border-bottom:1px solid #eee;"><td style="padding:4px;">Y${a.year} L${a.lesson_number}</td><td style="padding:4px;">${escapeHtml(a.title || '')}</td></tr>`;
+          }
+          detailHtml += '</table>';
+        }
+        if (diff.modified.length) {
+          detailHtml += '<h4 style="color:#e65100; margin:8px 0 4px;">Modified</h4><table style="width:100%; border-collapse:collapse;">';
+          for (const m of diff.modified) {
+            detailHtml += `<tr style="border-bottom:1px solid #eee;"><td style="padding:4px;">Y${m.year} L${m.lesson_number}</td><td style="padding:4px;"><s style="color:#999;">${escapeHtml(m.old_title || '')}</s> &rarr; ${escapeHtml(m.new_title || '')}</td></tr>`;
+          }
+          detailHtml += '</table>';
+        }
+        if (diff.removed.length) {
+          detailHtml += '<h4 style="color:#c62828; margin:8px 0 4px;">Removed</h4><table style="width:100%; border-collapse:collapse;">';
+          for (const r of diff.removed) {
+            detailHtml += `<tr style="border-bottom:1px solid #eee;"><td style="padding:4px;">Y${r.year} L${r.lesson_number}</td><td style="padding:4px;">${escapeHtml(r.title || '')}</td></tr>`;
+          }
+          detailHtml += '</table>';
+        }
+        if (!diff.added.length && !diff.modified.length && !diff.removed.length) {
+          detailHtml = '<p style="color:#86868b;">No changes detected. The new spreadsheet is identical to the current one.</p>';
+        }
+        document.getElementById('update-diff-details').innerHTML = detailHtml;
+
+        // Show step 2
+        document.getElementById('update-step-upload').style.display = 'none';
+        document.getElementById('update-step-confirm').style.display = '';
+      } catch (e) {
+        errEl.textContent = 'Upload failed: ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload & Compare';
+      }
+    }
+
+    function updateSchemeBack() {
+      document.getElementById('update-step-confirm').style.display = 'none';
+      document.getElementById('update-step-upload').style.display = '';
+    }
+
+    async function applySchemeUpdate() {
+      const courseId = document.getElementById('course-selector').value;
+      const errEl = document.getElementById('update-apply-error');
+      errEl.textContent = '';
+
+      const btn = document.getElementById('btn-apply-update');
+      btn.disabled = true;
+      btn.textContent = 'Applying...';
+
+      try {
+        const res = await fetch(`/api/courses/${courseId}/apply-update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            new_xlsx_path: updateSchemeXlsxPath,
+            delete_removed: document.getElementById('update-delete-removed').checked,
+            delete_from_drive: document.getElementById('update-delete-drive').checked,
+            reset_modified: document.getElementById('update-reset-modified').checked,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          errEl.textContent = data.error;
+          return;
+        }
+
+        const r = data.results;
+        const s = data.diff_summary;
+        let html = '<h3 style="color:#2e7d32; margin-bottom:12px;">Update Applied</h3>';
+        html += '<ul style="font-size:13px; line-height:1.8; padding-left:20px;">';
+        html += `<li>${s.added} lessons added, ${s.modified} modified, ${s.removed} removed</li>`;
+        if (r.disk_deleted.length) html += `<li>${r.disk_deleted.length} files deleted from disk</li>`;
+        if (r.drive_deleted.length) html += `<li>${r.drive_deleted.length} files deleted from Google Drive</li>`;
+        if (r.progress_cleared.length) html += `<li>${r.progress_cleared.length} progress entries cleared</li>`;
+        if (r.errors.length) {
+          html += `<li style="color:#c62828;">${r.errors.length} errors:</li>`;
+          html += '<ul>';
+          for (const e of r.errors) html += `<li>${escapeHtml(e)}</li>`;
+          html += '</ul>';
+        }
+        html += '</ul>';
+        html += '<p style="font-size:13px; color:#86868b; margin-top:12px;">Modified and added lessons will show as "pending". Use "Generate All" to batch-regenerate them.</p>';
+
+        document.getElementById('update-results-content').innerHTML = html;
+        document.getElementById('update-step-confirm').style.display = 'none';
+        document.getElementById('update-step-results').style.display = '';
+      } catch (e) {
+        errEl.textContent = 'Apply failed: ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply Update';
+      }
+    }
+
+    function closeUpdateSchemeAndReload() {
+      closeUpdateSchemeModal();
+      window.location.reload();
     }
 
     // ─── Upload / Add Course wizard ───
