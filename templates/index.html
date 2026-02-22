@@ -152,6 +152,13 @@
     .sheet-config-row { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; font-size: 13px; }
     .sheet-config-row input[type="checkbox"] { width: auto; }
     .sheet-config-row input, .sheet-config-row select { width: auto; padding: 4px 8px; font-size: 13px; }
+
+    .export-dropdown { display:none; position:absolute; top:100%; left:0; margin-top:4px; background:#fff; border:1px solid #d2d2d7; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.12); z-index:100; min-width:210px; }
+    .export-dropdown.open { display:block; }
+    .export-section-label { padding:6px 14px 2px; font-size:10px; color:#86868b; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+    .export-option { display:block; padding:7px 14px; font-size:13px; color:#1d1d1f; text-decoration:none; cursor:pointer; transition:background 0.1s; border:none; background:none; width:100%; text-align:left; }
+    .export-option:hover { background:#f5f5f7; }
+    .export-divider { border-top:1px solid #e5e5ea; margin:4px 0; }
   </style>
 </head>
 <body>
@@ -180,6 +187,26 @@
     </select>
     <button class="btn btn-primary btn-sm" onclick="openUploadModal()">+ Add Course</button>
     <button class="btn btn-secondary btn-sm" onclick="openUpdateSchemeModal()" id="btn-update-scheme" style="display:{{ 'none' if active_course.is_default else 'inline-flex' }}">Update Scheme</button>
+    <div style="position:relative; display:{{ 'none' if active_course.is_default else 'inline-block' }};" id="export-scheme-wrap">
+      <button class="btn btn-secondary btn-sm" onclick="toggleExportDropdown(event)" id="btn-export-scheme">Export Scheme ▾</button>
+      <div class="export-dropdown" id="export-dropdown">
+        <div style="padding:6px 0;">
+          <div class="export-section-label">Download</div>
+          <button class="export-option" onclick="exportScheme('xlsx','download')">📊 Excel (.xlsx)</button>
+          <button class="export-option" onclick="exportScheme('docx','download')">📝 Word (.docx)</button>
+          <button class="export-option" onclick="exportScheme('pdf','download')">📄 PDF</button>
+          <div class="export-divider"></div>
+          <div class="export-section-label">Save to Mac</div>
+          <button class="export-option" onclick="exportScheme('xlsx','mac')">📊 Excel (.xlsx)</button>
+          <button class="export-option" onclick="exportScheme('docx','mac')">📝 Word (.docx)</button>
+          <button class="export-option" onclick="exportScheme('pdf','mac')">📄 PDF</button>
+          <div class="export-divider"></div>
+          <div class="export-section-label">Google Drive</div>
+          <button class="export-option" onclick="exportScheme('google_sheets','drive')">📊 Google Sheets</button>
+          <button class="export-option" onclick="exportScheme('google_docs','drive')">📝 Google Docs</button>
+        </div>
+      </div>
+    </div>
     <button class="btn btn-secondary btn-sm" onclick="deleteCourse()" id="btn-delete-course" style="display:{{ 'none' if active_course.is_default else 'inline-flex' }}">Delete Course</button>
   </div>
 
@@ -914,6 +941,107 @@
         window.location.reload();
       } catch(e) {
         showToast('Error: ' + e.message);
+      }
+    }
+
+    // ─── Export Scheme of Work ───
+
+    function toggleExportDropdown(e) {
+      e.stopPropagation();
+      const dd = document.getElementById('export-dropdown');
+      dd.classList.toggle('open');
+    }
+
+    document.addEventListener('click', function(e) {
+      const dd = document.getElementById('export-dropdown');
+      if (dd && !dd.contains(e.target)) {
+        dd.classList.remove('open');
+      }
+    });
+
+    async function exportScheme(format, destination) {
+      document.getElementById('export-dropdown').classList.remove('open');
+      const courseId = document.getElementById('course-selector').value;
+
+      if (destination === 'download') {
+        // Browser download
+        const label = format.toUpperCase();
+        showToast(`Generating ${label} export...`);
+        try {
+          const res = await fetch(`/api/courses/${courseId}/export-scheme`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ format }),
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            showToast('Export failed: ' + (err.error || 'Unknown error'));
+            return;
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const cd = res.headers.get('Content-Disposition');
+          let filename = `scheme.${format}`;
+          if (cd) {
+            const match = cd.match(/filename="?(.+?)"?$/);
+            if (match) filename = match[1];
+          }
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast(`${label} downloaded!`);
+        } catch (e) {
+          showToast('Export failed: ' + e.message);
+        }
+
+      } else if (destination === 'mac') {
+        // Save to Mac output folder
+        const label = format.toUpperCase();
+        showToast(`Saving ${label} to output folder...`);
+        try {
+          const res = await fetch(`/api/courses/${courseId}/save-scheme`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ format }),
+          });
+          const data = await res.json();
+          if (data.error) {
+            showToast('Save failed: ' + data.error);
+            return;
+          }
+          showToast(`Saved to ${data.path}`);
+        } catch (e) {
+          showToast('Save failed: ' + e.message);
+        }
+
+      } else if (destination === 'drive') {
+        // Google Drive upload
+        const label = format === 'google_sheets' ? 'Google Sheets' : 'Google Docs';
+        showToast(`Uploading to Google Drive as ${label}...`);
+        try {
+          const res = await fetch(`/api/courses/${courseId}/export-scheme`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ format }),
+          });
+          const data = await res.json();
+          if (data.error) {
+            showToast('Upload failed: ' + data.error);
+            return;
+          }
+          if (data.web_link) {
+            window.open(data.web_link, '_blank');
+            showToast(`Opened in ${label}!`);
+          } else {
+            showToast(`Uploaded to Google Drive`);
+          }
+        } catch (e) {
+          showToast('Upload failed: ' + e.message);
+        }
       }
     }
 

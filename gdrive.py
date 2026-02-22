@@ -117,6 +117,7 @@ def _ensure_folder_path(service, path_parts, root_id):
 MIME_TYPES = {
     ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ".pdf": "application/pdf",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 }
 
 
@@ -266,6 +267,55 @@ def delete_lesson_files_from_drive(lesson, root_folder_id=None):
         result["errors"].append(f"Search failed: {e}")
 
     return result
+
+
+def upload_as_google_native(local_path, name, target_mime, folder_id=None):
+    """
+    Upload a local file to Google Drive, converting to a Google-native format.
+
+    Setting the target mimeType in metadata triggers automatic conversion
+    (e.g. .xlsx → Google Sheets, .docx → Google Docs).
+
+    Args:
+        local_path: path to the local file (.xlsx or .docx)
+        name: desired name in Google Drive
+        target_mime: Google MIME type, e.g.:
+            "application/vnd.google-apps.spreadsheet" (Google Sheets)
+            "application/vnd.google-apps.document" (Google Docs)
+        folder_id: optional Drive folder ID (defaults to GDRIVE_ROOT_FOLDER_ID)
+
+    Returns:
+        dict with file_id and web_link
+    """
+    from googleapiclient.http import MediaFileUpload
+
+    service = _get_service()
+    local_path = Path(local_path)
+
+    ext = local_path.suffix.lower()
+    source_mime = MIME_TYPES.get(ext, "application/octet-stream")
+
+    folder_id = folder_id or os.getenv("GDRIVE_ROOT_FOLDER_ID")
+
+    metadata = {
+        "name": name,
+        "mimeType": target_mime,
+    }
+    if folder_id:
+        metadata["parents"] = [folder_id]
+
+    media = MediaFileUpload(str(local_path), mimetype=source_mime)
+
+    result = service.files().create(
+        body=metadata,
+        media_body=media,
+        fields="id, webViewLink",
+    ).execute()
+
+    return {
+        "file_id": result["id"],
+        "web_link": result.get("webViewLink", ""),
+    }
 
 
 def check_connection():

@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from threading import Lock
 
-from flask import Flask, Response, render_template, request, jsonify
+from flask import Flask, Response, render_template, request, jsonify, send_file
 from prompt_generator import generate_master_prompt
 import courses
 import tracker
@@ -497,6 +497,140 @@ def api_apply_scheme_update(course_id):
         "results": results,
         "diff_summary": diff["summary"],
     })
+
+
+# ========================================================================
+# Export Scheme of Work API
+# ========================================================================
+
+@app.route("/api/courses/<course_id>/export-scheme", methods=["POST"])
+def api_export_scheme(course_id):
+    """Export the scheme of work in various formats (download or Google Drive)."""
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "Course not found"}), 404
+
+    body = request.get_json() or {}
+    fmt = body.get("format", "xlsx")
+    course_name = config.get("name", "Scheme")
+
+    if fmt == "xlsx":
+        xlsx_path = Path(config["xlsx_path"])
+        if not xlsx_path.exists():
+            return jsonify({"error": "Source spreadsheet not found"}), 404
+        return send_file(
+            str(xlsx_path),
+            as_attachment=True,
+            download_name=f"{course_name} - Scheme of Work.xlsx",
+        )
+
+    elif fmt == "docx":
+        from scheme_export import export_scheme_docx
+        data = get_data(course_id)
+        docx_path = export_scheme_docx(config, data["all_lessons"])
+        return send_file(
+            docx_path,
+            as_attachment=True,
+            download_name=f"{course_name} - Scheme of Work.docx",
+        )
+
+    elif fmt == "pdf":
+        from scheme_export import export_scheme_docx
+        from generator import convert_to_pdf
+        data = get_data(course_id)
+        docx_path = export_scheme_docx(config, data["all_lessons"])
+        pdf_path = convert_to_pdf(docx_path)
+        if not pdf_path:
+            return jsonify({"error": "PDF conversion failed — is LibreOffice installed?"}), 500
+        return send_file(
+            str(pdf_path),
+            as_attachment=True,
+            download_name=f"{course_name} - Scheme of Work.pdf",
+        )
+
+    elif fmt == "google_sheets":
+        from gdrive import upload_as_google_native
+        xlsx_path = config["xlsx_path"]
+        result = upload_as_google_native(
+            xlsx_path,
+            f"{course_name} - Scheme of Work",
+            target_mime="application/vnd.google-apps.spreadsheet",
+            folder_id=config.get("gdrive_folder_id") or None,
+        )
+        return jsonify(result)
+
+    elif fmt == "google_docs":
+        from scheme_export import export_scheme_docx
+        from gdrive import upload_as_google_native
+        data = get_data(course_id)
+        docx_path = export_scheme_docx(config, data["all_lessons"])
+        result = upload_as_google_native(
+            docx_path,
+            f"{course_name} - Scheme of Work",
+            target_mime="application/vnd.google-apps.document",
+            folder_id=config.get("gdrive_folder_id") or None,
+        )
+        return jsonify(result)
+
+    else:
+        return jsonify({"error": f"Unknown format: {fmt}"}), 400
+
+
+@app.route("/api/courses/<course_id>/save-scheme", methods=["POST"])
+def api_save_scheme(course_id):
+    """Save the scheme of work to the Mac output folder."""
+    from generator import OUTPUT_DIR
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "Course not found"}), 404
+
+    body = request.get_json() or {}
+    fmt = body.get("format", "xlsx")
+    course_name = config.get("name", "Scheme")
+
+    # Create output folder: output/{course_name}/Scheme of Work/
+    from generic_parser import _sanitize_folder_name
+    safe_name = _sanitize_folder_name(course_name)
+    save_dir = OUTPUT_DIR / safe_name / "Scheme of Work"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{course_name} - Scheme of Work"
+
+    if fmt == "xlsx":
+        import shutil
+        src = Path(config["xlsx_path"])
+        if not src.exists():
+            return jsonify({"error": "Source spreadsheet not found"}), 404
+        dest = save_dir / f"{filename}.xlsx"
+        shutil.copy2(str(src), str(dest))
+        return jsonify({"success": True, "path": str(dest)})
+
+    elif fmt == "docx":
+        from scheme_export import export_scheme_docx
+        data = get_data(course_id)
+        tmp_path = export_scheme_docx(config, data["all_lessons"])
+        dest = save_dir / f"{filename}.docx"
+        import shutil
+        shutil.move(tmp_path, str(dest))
+        return jsonify({"success": True, "path": str(dest)})
+
+    elif fmt == "pdf":
+        from scheme_export import export_scheme_docx
+        from generator import convert_to_pdf
+        data = get_data(course_id)
+        tmp_path = export_scheme_docx(config, data["all_lessons"])
+        pdf_path = convert_to_pdf(tmp_path)
+        if not pdf_path:
+            return jsonify({"error": "PDF conversion failed — is LibreOffice installed?"}), 500
+        dest = save_dir / f"{filename}.pdf"
+        import shutil
+        shutil.move(str(pdf_path), str(dest))
+        # Clean up the temp docx
+        Path(tmp_path).unlink(missing_ok=True)
+        return jsonify({"success": True, "path": str(dest)})
+
+    else:
+        return jsonify({"error": f"Unknown format: {fmt}"}), 400
 
 
 # ========================================================================
