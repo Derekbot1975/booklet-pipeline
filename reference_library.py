@@ -235,75 +235,138 @@ def reparse_document(doc_id):
     return {"doc_id": doc_id, "parsed_length": len(parsed)}
 
 
-def get_reference_context(subject=None, key_stage=None, exam_board=None):
+def get_reference_context(subject=None, key_stage=None, exam_board=None,
+                          max_chars=480_000):
     """
     Build the reference context string for AI prompts.
 
     Gathers all relevant reference documents and assembles them into a
     single context string that gets injected into Claude system prompts.
+    Uses a character budget (~120K tokens at ~4 chars/token) to stay well
+    within API limits.
 
-    Always includes: great_lesson_code and sow_exemplar (if available).
-    Filters by subject, key_stage, and exam_board for other categories.
+    Priority order:
+      1. great_lesson_code  — always included (small, cross-cutting)
+      2. Matching spec       — the specific exam board specification
+      3. National curriculum — matching subject + key stage
+      4. Expert input        — matching subject, individually capped
+      5. sow_exemplar        — format examples (large, lower priority)
+
+    Per-document caps prevent any single huge PDF from consuming the budget.
     """
+    MAX_SPEC_CHARS = 60_000       # ~15K tokens per spec
+    MAX_EXPERT_CHARS = 20_000     # ~5K tokens per expert doc
+    MAX_NC_CHARS = 40_000         # ~10K tokens per NC doc
+    MAX_EXEMPLAR_CHARS = 40_000   # ~10K tokens per exemplar
+
     docs = list_documents()
-    context_parts = []
+
+    # ── Bucket docs by category ──────────────────────────────────
+    buckets = {
+        "great_lesson_code": [],
+        "ks4_spec": [],
+        "national_curriculum": [],
+        "expert_input": [],
+        "sow_exemplar": [],
+    }
 
     for doc in docs:
         doc_id = doc["id"]
         parsed_file = _parsed_path(doc_id)
         if not parsed_file.exists():
             continue
-        content = parsed_file.read_text().strip()
-        if not content:
+        cat = doc.get("category")
+        if cat not in buckets:
             continue
 
-        cat = doc.get("category")
-
-        # Always include these cross-cutting documents
+        # Apply category-specific subject/filter matching
         if cat == "great_lesson_code":
-            context_parts.append(
-                f"=== SCHOOL QUALITY FRAMEWORK ===\n"
-                f"Title: {doc.get('title', 'Quality Framework')}\n\n"
-                f"{content}"
-            )
+            buckets[cat].append(doc)
         elif cat == "sow_exemplar":
-            context_parts.append(
-                f"=== SCHEME OF WORK FORMAT ===\n"
-                f"Title: {doc.get('title', 'SoW Exemplar')}\n\n"
-                f"{content}"
-            )
+            buckets[cat].append(doc)
         elif cat == "expert_input":
-            # Match by subject
-            if subject and doc.get("subject", "").lower() == subject.lower():
-                context_parts.append(
-                    f"=== EXPERT INPUT FOR {subject.upper()} ===\n"
-                    f"Title: {doc.get('title', 'Expert Input')}\n\n"
-                    f"{content}"
-                )
+            if subject and (doc.get("subject") or "").lower() == subject.lower():
+                buckets[cat].append(doc)
         elif cat == "national_curriculum":
-            # Match by subject AND key stage
             doc_subj = (doc.get("subject") or "").lower()
             doc_ks = (doc.get("key_stage") or "").upper()
             if subject and doc_subj == subject.lower():
                 if not key_stage or doc_ks == key_stage.upper():
-                    ks_label = doc_ks or ""
-                    context_parts.append(
-                        f"=== NATIONAL CURRICULUM ({ks_label} {subject}) ===\n"
-                        f"Title: {doc.get('title', 'National Curriculum')}\n\n"
-                        f"{content}"
-                    )
+                    buckets[cat].append(doc)
         elif cat == "ks4_spec":
-            # Match by subject and optionally exam board
             doc_subj = (doc.get("subject") or "").lower()
             doc_board = (doc.get("exam_board") or "").lower()
             if subject and doc_subj == subject.lower():
                 if not exam_board or doc_board == exam_board.lower():
-                    board_label = doc.get("exam_board") or "Unknown"
-                    context_parts.append(
-                        f"=== SPECIFICATION ({board_label} {subject}) ===\n"
-                        f"Title: {doc.get('title', 'Specification')}\n\n"
-                        f"{content}"
-                    )
+                    buckets[cat].append(doc)
+
+    # ── Assemble context with budget tracking ────────────────────
+    context_parts = []
+    budget = max_chars
+
+    def _add(header, title, content, cap):
+        nonlocal budget
+        if budget <= 0:
+            return False
+        if len(content) > cap:
+            content = content[:cap] + "\n\n[... truncated for length ...]"
+        entry = f"{header}\nTitle: {title}\n\n{content}"
+        if len(entry) > budget:
+            entry = entry[:budget]
+        context_parts.append(entry)
+        budget -= len(entry)
+        return True
+
+    # 1. Great lesson code (always, small docs)
+    for doc in buckets["great_lesson_code"]:
+        content = _parsed_path(doc["id"]).read_text().strip()
+        if not content:
+            continue
+        _add("=== SCHOOL QUALITY FRAMEWORK ===",
+             doc.get("title", "Quality Framework"), content, 30_000)
+
+    # 2. Matching specification(s)
+    for doc in buckets["ks4_spec"]:
+        content = _parsed_path(doc["id"]).read_text().strip()
+        if not content:
+            continue
+        board_label = doc.get("exam_board") or "Unknown"
+        _add(f"=== SPECIFICATION ({board_label} {subject}) ===",
+             doc.get("title", "Specification"), content, MAX_SPEC_CHARS)
+
+    # 3. National curriculum
+    for doc in buckets["national_curriculum"]:
+        content = _parsed_path(doc["id"]).read_text().strip()
+        if not content:
+            continue
+        ks_label = (doc.get("key_stage") or "").upper()
+        _add(f"=== NATIONAL CURRICULUM ({ks_label} {subject}) ===",
+             doc.get("title", "National Curriculum"), content, MAX_NC_CHARS)
+
+    # 4. Expert input (most numerous — sorted smallest first to fit more)
+    expert_docs = []
+    for doc in buckets["expert_input"]:
+        p = _parsed_path(doc["id"])
+        content = p.read_text().strip()
+        if content:
+            expert_docs.append((len(content), doc, content))
+    expert_docs.sort(key=lambda x: x[0])  # smallest first → maximise coverage
+
+    for _, doc, content in expert_docs:
+        if budget <= 0:
+            break
+        _add(f"=== EXPERT INPUT FOR {subject.upper()} ===",
+             doc.get("title", "Expert Input"), content, MAX_EXPERT_CHARS)
+
+    # 5. SoW exemplars (large, lower priority — only if budget remains)
+    for doc in buckets["sow_exemplar"]:
+        if budget <= 0:
+            break
+        content = _parsed_path(doc["id"]).read_text().strip()
+        if not content:
+            continue
+        _add("=== SCHEME OF WORK FORMAT ===",
+             doc.get("title", "SoW Exemplar"), content, MAX_EXEMPLAR_CHARS)
 
     if not context_parts:
         return ""
