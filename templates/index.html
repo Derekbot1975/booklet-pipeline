@@ -159,6 +159,106 @@
     .export-option { display:block; padding:7px 14px; font-size:13px; color:#1d1d1f; text-decoration:none; cursor:pointer; transition:background 0.1s; border:none; background:none; width:100%; text-align:left; }
     .export-option:hover { background:#f5f5f7; }
     .export-divider { border-top:1px solid #e5e5ea; margin:4px 0; }
+
+    /* Personalise Me — Feedback + SEND */
+    .pm-tabs { display:flex; gap:0; border-bottom:2px solid #e5e5ea; margin-bottom:16px; }
+    .pm-tab { padding:8px 16px; font-size:13px; font-weight:500; color:#86868b; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+    .pm-tab.active { color:#007aff; border-bottom-color:#007aff; }
+    .pm-tab-panel { display:none; }
+    .pm-tab-panel.active { display:block; }
+    .feedback-textarea { width:100%; min-height:100px; padding:10px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:14px; line-height:1.6; font-family:inherit; resize:vertical; }
+    .feedback-history-item { padding:10px 12px; background:#f5f5f7; border-radius:8px; margin-bottom:8px; font-size:13px; }
+    .feedback-history-item .fb-date { color:#86868b; font-size:11px; margin-bottom:4px; }
+    .feedback-history-item .fb-text { color:#1d1d1f; }
+    .send-student-select { width:100%; padding:8px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:14px; margin-bottom:12px; }
+    .send-booklet-list { font-size:13px; }
+    .send-booklet-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#f5f5f7; border-radius:8px; margin-bottom:6px; }
+    .student-card { padding:12px 16px; background:#f5f5f7; border-radius:8px; margin-bottom:8px; }
+    .student-card .student-name { font-weight:600; font-size:14px; }
+    .student-card .student-meta { font-size:12px; color:#86868b; margin-top:2px; }
+    .student-card .student-actions { display:flex; gap:6px; margin-top:8px; }
+    .send-type-tags { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+    .send-type-tag { padding:2px 8px; background:#e3f2fd; color:#0d47a1; border-radius:10px; font-size:11px; font-weight:500; }
+
+    /* Tier badge */
+    .tier-badge { padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+    .tier-standard { background:#e5e5ea; color:#86868b; }
+    .tier-no_custom { background:#e3f2fd; color:#0d47a1; }
+    .tier-all_custom { background:#e8f8ed; color:#1b7a3d; }
+
+    /* Feature lock */
+    .feature-locked { opacity:0.5; pointer-events:none; position:relative; }
+    .lock-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.7); border-radius:12px; z-index:10; }
+    .lock-msg { font-size:12px; color:#86868b; display:flex; align-items:center; gap:4px; }
+
+    /* Reference library */
+    .ref-category { margin-bottom:20px; }
+    .ref-category h4 { font-size:13px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:8px; }
+    .ref-doc-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#f5f5f7; border-radius:8px; margin-bottom:6px; font-size:13px; }
+    .ref-doc-item .ref-title { font-weight:500; }
+    .ref-doc-meta { font-size:11px; color:#86868b; margin-top:2px; }
+
+    /* Schemes */
+    .scheme-card { padding:14px 16px; background:#f5f5f7; border-radius:10px; margin-bottom:10px; cursor:pointer; transition:background 0.15s; }
+    .scheme-card:hover { background:#e8e8ed; }
+    .scheme-title { font-weight:600; font-size:14px; }
+    .scheme-meta { font-size:12px; color:#86868b; margin-top:4px; }
+    .review-rating { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+    .rating-excellent { background:#e8f8ed; color:#1b7a3d; }
+    .rating-good { background:#fff3e0; color:#b36b00; }
+    .rating-requires_improvement { background:#fce4ec; color:#c62828; }
+    .rating-inadequate { background:#ffcdd2; color:#b71c1c; }
+
+    /* Assessment builder */
+    .question-card { padding:12px 16px; background:#f5f5f7; border-radius:8px; margin-bottom:8px; }
+    .question-num { font-weight:600; color:#007aff; }
+    .question-type-tag { padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+    .qt-mc { background:#e3f2fd; color:#0d47a1; }
+    .qt-short { background:#fff3e0; color:#b36b00; }
+    .qt-long { background:#f3e5f5; color:#6a1b9a; }
+
+    /* Booklet type selector */
+    .bt-option { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; background:#f5f5f7; border-radius:10px; margin-bottom:8px; cursor:pointer; transition:background 0.15s; }
+    .bt-option:hover { background:#e8e8ed; }
+    .bt-option.selected { background:#e3f2fd; border:2px solid #007aff; }
+    .bt-option input { margin-top:3px; }
+    .bt-label { font-weight:600; font-size:14px; }
+    .bt-desc { font-size:12px; color:#86868b; margin-top:2px; }
+
+    /* Extra-wide modal */
+    .modal.xxl { width:1000px; max-width:95vw; }
+
+    /* Header button groups */
+    .header-group { display:flex; gap:6px; align-items:center; }
+    .header-divider { width:1px; height:20px; background:#d2d2d7; margin:0 6px; }
+    .header-group-label { font-size:10px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.5px; margin-right:2px; }
+
+    /* Curriculum Hub tabs */
+    .hub-tabs { display:flex; gap:0; border-bottom:2px solid #e5e5ea; margin-bottom:16px; }
+    .hub-tab { padding:10px 20px; font-size:14px; font-weight:500; color:#86868b; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+    .hub-tab.active { color:#007aff; border-bottom-color:#007aff; }
+    .hub-tab-panel { display:none; }
+    .hub-tab-panel.active { display:block; }
+
+    /* PM tab help cards */
+    .pm-help { padding:10px 14px; background:#f0f7ff; border-radius:8px; margin-bottom:14px; font-size:13px; color:#0d47a1; border:1px solid #c5dff5; line-height:1.5; }
+    .pm-help strong { font-weight:600; }
+
+    /* Result cards for generated files */
+    .result-card { background:#e8f8ed; padding:14px 16px; border-radius:10px; font-size:13px; margin-top:4px; }
+    .result-card .result-title { font-size:14px; font-weight:600; color:#1a7f37; margin-bottom:6px; }
+    .result-card .result-meta { color:#555; margin-bottom:8px; line-height:1.6; }
+    .result-card .result-files { background:#fff; border:1px solid #d4edda; border-radius:8px; padding:8px 12px; margin-top:8px; }
+    .result-card .result-files .file-row { display:flex; align-items:center; gap:8px; padding:3px 0; font-size:12px; }
+    .result-card .result-files .file-row .file-label { font-weight:600; color:#1a7f37; min-width:42px; }
+    .result-card .result-files .file-row code { flex:1; font-size:11px; color:#333; word-break:break-all; }
+    .result-card .result-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .result-card .result-actions .btn { font-size:12px; padding:5px 12px; }
+    .btn-preview { background:#007aff; color:#fff; border:none; border-radius:6px; padding:5px 14px; font-size:12px; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-preview:hover { background:#0062d1; }
+    .btn-open-folder { background:#fff; color:#007aff; border:1px solid #007aff; border-radius:6px; padding:5px 14px; font-size:12px; cursor:pointer; text-decoration:none; display:inline-block; }
+    .btn-open-folder:hover { background:#f0f7ff; }
+    .result-card-error { background:#fce4ec; padding:10px 14px; border-radius:8px; font-size:13px; color:#c62828; margin-top:4px; }
   </style>
 </head>
 <body>
@@ -169,10 +269,34 @@
       {% for subj, count in stats.by_subject.items() %}
       <span class="stat-badge">{{ subj }}: {{ count }}</span>
       {% endfor %}
-      <button class="btn btn-success btn-sm" onclick="openBatchModal()">Generate All Booklets</button>
-      <button class="btn btn-secondary btn-sm" onclick="openReprocessModal()">Fix Numbering</button>
-      <button class="btn btn-secondary btn-sm" onclick="exportPrompts()">Export All Prompts</button>
-      <button class="btn btn-secondary btn-sm" onclick="openSettings()" id="settings-btn">Settings</button>
+
+      <div class="header-divider"></div>
+
+      <!-- Booklet Generation -->
+      <div class="header-group">
+        <button class="btn btn-success btn-sm" onclick="openBatchModal()" title="Generate all pending booklets in one batch">⚡ Generate All</button>
+        <button class="btn btn-secondary btn-sm" onclick="openReprocessModal()" title="Re-sanitise and rebuild all .docx/.pdf files using the latest formatting rules">🔄 Rebuild All</button>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <!-- Curriculum & Planning -->
+      <div class="header-group">
+        <button class="btn btn-secondary btn-sm" onclick="openCurriculumHub()" title="Schemes of work, reference documents, and progression maps all in one place">📚 Curriculum Hub</button>
+        <button class="btn btn-secondary btn-sm" onclick="openCurriculumHub('question-bank')" title="Browse and manage your question bank">📝 Question Bank</button>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <!-- Students -->
+      <div class="header-group">
+        <button class="btn btn-secondary btn-sm" onclick="openStudentsModal()" title="Manage SEND student profiles (EHCP/IEP/ISP)">👤 SEND Register</button>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <span id="tier-badge" class="tier-badge tier-all_custom" style="cursor:pointer" onclick="openTierModal()" title="Change your access tier">ALL CUSTOM</span>
+      <button class="btn btn-secondary btn-sm" onclick="openSettings()" id="settings-btn" title="API keys, Google Drive, and app configuration">⚙️ Settings</button>
     </div>
   </div>
 
@@ -410,14 +534,14 @@
   <div class="modal-overlay" id="reprocess-modal">
     <div class="modal">
       <div class="modal-header">
-        <h2>Fix Numbering — Reprocess All Booklets</h2>
+        <h2>Rebuild All Booklets</h2>
         <button class="modal-close" onclick="closeReprocessModal()">&times;</button>
       </div>
       <div class="modal-body">
         <div id="reprocess-setup">
           <p style="margin-bottom:10px;">
             Re-sanitises every generated <code>.md</code> file and rebuilds its
-            <code>.docx</code> and <code>.pdf</code> using the latest formatting rules.
+            <code>.docx</code> and <code>.pdf</code> using the latest formatting rules — without re-calling the AI.
           </p>
           <p style="margin-bottom:10px; color:#86868b; font-size:13px;">
             This fixes question numbering that continues across chunks, mark scheme entries that don't
@@ -425,7 +549,7 @@
             It cannot fix cases where Claude wrote the wrong answer for a question (those need regeneration).
           </p>
           <div class="actions">
-            <button class="btn btn-primary" onclick="startReprocess()">Reprocess All Booklets</button>
+            <button class="btn btn-primary" onclick="startReprocess()">Rebuild All Booklets</button>
             <button class="btn btn-secondary" onclick="closeReprocessModal()">Cancel</button>
           </div>
         </div>
@@ -605,6 +729,324 @@
           <div style="display:flex; gap:8px; margin-top:16px;">
             <button class="btn btn-primary" onclick="closeUpdateSchemeAndReload()">Done</button>
           </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SEND Students Modal -->
+  <div class="modal-overlay" id="students-modal">
+    <div class="modal wide">
+      <div class="modal-header">
+        <h2>SEND Student Profiles</h2>
+        <button class="modal-close" onclick="closeStudentsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#86868b; margin-bottom:16px;">
+          Add students who require personalised booklets. Upload their EHCP, IEP, or ISP document
+          text so the system can generate adapted booklets for them.
+        </p>
+
+        <!-- Student list -->
+        <div id="student-list-area"></div>
+
+        <!-- Add / Edit form -->
+        <div id="student-form-area" style="display:none; border-top:1px solid #e5e5ea; padding-top:16px; margin-top:16px;">
+          <h3 style="font-size:14px; font-weight:600; margin-bottom:12px; color:#1d1d1f; text-transform:none; letter-spacing:0;" id="student-form-title">Add Student</h3>
+          <input type="hidden" id="student-id-field">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Student Name *</label>
+              <input type="text" id="student-name" placeholder="e.g. Alex Smith">
+            </div>
+            <div class="form-group">
+              <label>Year Group</label>
+              <input type="number" id="student-year" min="7" max="13" placeholder="e.g. 9">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>SEND Needs (comma-separated)</label>
+            <input type="text" id="student-send-types" placeholder="e.g. Dyslexia, ASD, EHC Plan, Hearing Impairment">
+          </div>
+          <div class="form-group">
+            <label>EHCP / IEP / ISP Document *</label>
+            <p style="font-size:12px; color:#86868b; margin-bottom:6px;">
+              Paste the full text of the student's needs document. This is used by Claude to personalise booklets.
+              Include targets, strategies, accommodations, reading level, and any relevant context.
+            </p>
+            <textarea id="student-document" style="width:100%; min-height:180px; padding:10px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:13px; line-height:1.6; font-family:inherit; resize:vertical;" placeholder="Paste EHCP / IEP / ISP content here..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Additional Teacher Notes</label>
+            <textarea id="student-notes" style="width:100%; min-height:60px; padding:10px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:13px; font-family:inherit; resize:vertical;" placeholder="Any extra context for Claude (optional)"></textarea>
+          </div>
+          <div id="student-form-error" style="color:#c62828; font-size:13px; margin-bottom:8px;"></div>
+          <div class="actions">
+            <button class="btn btn-success" onclick="saveStudent()">Save Student</button>
+            <button class="btn btn-secondary" onclick="cancelStudentForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:16px; border-top:1px solid #e5e5ea; padding-top:16px;">
+          <button class="btn btn-primary" onclick="showStudentForm()">+ Add Student</button>
+          <button class="btn btn-secondary" onclick="closeStudentsModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tier Settings Modal -->
+  <div class="modal-overlay" id="tier-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Access Tier</h2>
+        <button class="modal-close" onclick="closeTierModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:#86868b; margin-bottom:16px;">
+          Control which features are available. In a multi-user setup, an admin would assign tiers to each teacher.
+        </p>
+        <div id="tier-options"></div>
+        <div class="actions" style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="closeTierModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Curriculum Hub Modal (unified: Reference Docs + Schemes + Maps + Question Bank) -->
+  <div class="modal-overlay" id="curriculum-hub-modal">
+    <div class="modal xxl">
+      <div class="modal-header">
+        <h2>📚 Curriculum Hub</h2>
+        <button class="modal-close" onclick="closeCurriculumHub()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="hub-tabs">
+          <div class="hub-tab active" onclick="switchHubTab('schemes')">📋 Schemes</div>
+          <div class="hub-tab" onclick="switchHubTab('maps')">🗺️ Student Maps</div>
+          <div class="hub-tab" onclick="switchHubTab('ref-docs')">📄 Reference Docs</div>
+          <div class="hub-tab" onclick="switchHubTab('question-bank')">📝 Question Bank</div>
+        </div>
+
+        <!-- Schemes Tab -->
+        <div class="hub-tab-panel active" id="hub-tab-schemes">
+          <div class="pm-help">
+            <strong>What is this?</strong> A scheme of work is the plan for what pupils learn and when.
+            Import your existing spreadsheet, or let AI build one from scratch. Then review it against
+            national standards with one click.
+          </div>
+          <!-- Filter bar -->
+          <div style="display:flex; gap:8px; margin-bottom:12px; align-items:center; flex-wrap:wrap;">
+            <select id="scheme-filter-subject" onchange="loadSchemesList()" style="padding:6px 10px; border-radius:6px; border:1px solid #d2d2d7; font-size:13px;">
+              <option value="">All Subjects</option>
+            </select>
+            <select id="scheme-filter-ks" onchange="loadSchemesList()" style="padding:6px 10px; border-radius:6px; border:1px solid #d2d2d7; font-size:13px;">
+              <option value="">All Key Stages</option>
+              <option value="KS3">KS3</option>
+              <option value="KS4">KS4</option>
+              <option value="KS5">KS5</option>
+            </select>
+            <span style="flex:1;"></span>
+            <button class="btn btn-primary" onclick="showImportSchemeDialog()">📥 Import Scheme</button>
+            <button class="btn btn-success" onclick="showGenerateSchemeForm()">✨ Generate with AI</button>
+          </div>
+          <div id="schemes-list"></div>
+
+          <!-- Import dialog -->
+          <div id="scheme-import-dialog" style="display:none; border:2px dashed #d2d2d7; border-radius:12px; padding:20px; margin-top:16px; background:#f5f5f7;">
+            <h3 style="font-size:14px; font-weight:600; margin-bottom:12px;">📥 Import Scheme of Work</h3>
+
+            <!-- Tab choice: from course or file upload -->
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+              <button class="btn btn-primary btn-sm" id="import-tab-course" onclick="switchImportTab('course')" style="opacity:1;">From Current Course</button>
+              <button class="btn btn-secondary btn-sm" id="import-tab-file" onclick="switchImportTab('file')" style="opacity:0.6;">Upload File (xlsx/csv)</button>
+            </div>
+
+            <!-- From-course panel -->
+            <div id="import-panel-course">
+              <p style="font-size:13px; color:#86868b; margin-bottom:12px;">
+                Import the scheme directly from your currently loaded spreadsheet. The course's subject, year group, and exam board are used automatically.
+              </p>
+              <div class="actions">
+                <button class="btn btn-primary" onclick="importSchemeFromCourse()">Import from Current Course</button>
+                <button class="btn btn-secondary" onclick="hideImportDialog()">Cancel</button>
+              </div>
+            </div>
+
+            <!-- File-upload panel -->
+            <div id="import-panel-file" style="display:none;">
+              <p style="font-size:13px; color:#86868b; margin-bottom:12px;">
+                Upload your own scheme file. Columns should include <strong>Title</strong> (or Lesson), <strong>Topic</strong> (or Unit), <strong>Spec Content</strong>, and <strong>Key Vocabulary</strong>.
+              </p>
+              <div class="form-row">
+                <div class="form-group"><label>Subject *</label><input type="text" id="import-subject" placeholder="e.g. Science"></div>
+                <div class="form-group"><label>Key Stage *</label><select id="import-ks"><option value="KS3">KS3</option><option value="KS4">KS4</option><option value="KS5">KS5</option></select></div>
+                <div class="form-group"><label>Year Group *</label><input type="number" id="import-year" value="8" min="1" max="13"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Exam Board</label><input type="text" id="import-board" placeholder="e.g. AQA, Edexcel"></div>
+              </div>
+              <div id="scheme-drop-zone" style="border:2px dashed #007aff; border-radius:8px; padding:24px; text-align:center; cursor:pointer; margin-bottom:12px; transition:background 0.2s;"
+                   onclick="document.getElementById('scheme-file-input').click()"
+                   ondragover="event.preventDefault(); this.style.background='#e8f4ff';"
+                   ondragleave="this.style.background='transparent';"
+                   ondrop="handleSchemeDrop(event)">
+                <div style="font-size:24px; margin-bottom:4px;">📄</div>
+                <div style="font-size:13px; color:#86868b;">Drag & drop your file here, or click to browse</div>
+                <div style="font-size:12px; color:#aaa; margin-top:4px;">Supports .xlsx, .xls, .csv</div>
+                <div id="scheme-file-name" style="font-size:13px; color:#007aff; margin-top:8px; display:none;"></div>
+              </div>
+              <input type="file" id="scheme-file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="schemeFileSelected(this)">
+              <div class="actions">
+                <button class="btn btn-primary" onclick="uploadSchemeFile()">Upload & Import</button>
+                <button class="btn btn-secondary" onclick="hideImportDialog()">Cancel</button>
+              </div>
+            </div>
+            <div id="scheme-import-result" style="margin-top:8px;"></div>
+          </div>
+
+          <!-- Generate form -->
+          <div id="scheme-generate-form" style="display:none; border:2px solid #34c759; border-radius:12px; padding:20px; margin-top:16px; background:#f0fff4;">
+            <h3 style="font-size:14px; font-weight:600; margin-bottom:12px;">✨ Generate Scheme of Work with AI</h3>
+            <div class="form-row">
+              <div class="form-group"><label>Subject *</label><input type="text" id="sow-subject" placeholder="e.g. Science"></div>
+              <div class="form-group"><label>Key Stage *</label><select id="sow-ks"><option value="KS3">KS3</option><option value="KS4">KS4</option><option value="KS5">KS5</option></select></div>
+              <div class="form-group"><label>Scope *</label>
+                <select id="sow-scope" onchange="updateSowYearOptions()">
+                  <option value="single_year">Single Year Group</option>
+                  <option value="whole_ks">Whole Key Stage</option>
+                </select>
+              </div>
+              <div class="form-group" id="sow-year-group"><label>Year Group</label><input type="number" id="sow-year" value="8" min="1" max="13"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Lessons/Week</label><input type="number" id="sow-lpw" value="3" min="1" max="10"></div>
+              <div class="form-group"><label>Weeks/Term</label><input type="number" id="sow-wpt" value="6" min="1" max="12"></div>
+              <div class="form-group"><label>Exam Board</label><input type="text" id="sow-board" placeholder="e.g. AQA"></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="font-weight:500; font-size:13px;">Priority Topics (optional)</label>
+              <textarea id="sow-priorities" rows="2" style="width:100%; padding:8px; border:1px solid #d2d2d7; border-radius:6px; font-size:13px; resize:vertical;" placeholder="Topics that must be covered first or given extra time, e.g. 'Cells & Organisation, Atomic Structure'"></textarea>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="font-weight:500; font-size:13px;">Exclusions (optional)</label>
+              <textarea id="sow-exclusions" rows="2" style="width:100%; padding:8px; border:1px solid #d2d2d7; border-radius:6px; font-size:13px; resize:vertical;" placeholder="Topics to exclude, e.g. 'Already covered in Year 7'"></textarea>
+            </div>
+            <div style="margin-bottom:12px;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                <input type="checkbox" id="sow-use-refs" checked>
+                Use uploaded reference documents (spec, expert input, exemplars)
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" onclick="generateScheme()">Generate via Claude</button>
+              <button class="btn btn-secondary" onclick="cancelGenerateScheme()">Cancel</button>
+            </div>
+            <div id="sow-gen-result" style="margin-top:8px;"></div>
+          </div>
+
+          <div id="scheme-review-area" style="display:none; border-top:1px solid #e5e5ea; padding-top:16px; margin-top:16px;"></div>
+        </div>
+
+        <!-- Student Maps Tab -->
+        <div class="hub-tab-panel" id="hub-tab-maps">
+          <div class="pm-help">
+            <strong>What is this?</strong> A child-friendly visual map showing the learning journey for the year.
+            Pupils see where they're going, why topics connect, and what big questions they'll answer.
+            Great for classroom display and lesson starters!
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="generateMapFromCurrentCourse()">🗺️ Generate from Current Course</button>
+            <select id="map-from-scheme-select" style="padding:6px 10px; border-radius:6px; border:1px solid #d2d2d7; font-size:13px;">
+              <option value="">— or pick a scheme —</option>
+            </select>
+            <button class="btn btn-secondary" onclick="generateMapFromSelectedScheme()">Generate from Scheme</button>
+          </div>
+          <div id="progression-maps-list"></div>
+          <div id="progression-map-viewer" style="margin-top:16px;"></div>
+        </div>
+
+        <!-- Reference Docs Tab -->
+        <div class="hub-tab-panel" id="hub-tab-ref-docs">
+          <div class="pm-help">
+            <strong>What is this?</strong> Upload documents that the AI uses as a quality benchmark —
+            expert input files, national curriculum, exam specifications, and what a great lesson looks like.
+            These are automatically injected into every AI generation to keep output consistent and accurate.
+          </div>
+          <div id="ref-lib-content"></div>
+          <div id="ref-upload-form" style="display:none; border-top:1px solid #e5e5ea; padding-top:16px; margin-top:16px;">
+            <h3 style="font-size:14px; font-weight:600; margin-bottom:12px;">Upload Reference Document</h3>
+            <form id="ref-upload-form-el" enctype="multipart/form-data">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Category *</label>
+                  <select id="ref-category" required>
+                    <option value="expert_input">Expert Input File</option>
+                    <option value="national_curriculum">National Curriculum</option>
+                    <option value="ks4_spec">KS4/5 Specification</option>
+                    <option value="sow_exemplar">Scheme of Work Exemplar</option>
+                    <option value="great_lesson_code">Great Lesson Codification</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Subject</label>
+                  <input type="text" id="ref-subject" placeholder="e.g. Science, History">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Key Stage</label>
+                  <select id="ref-key-stage">
+                    <option value="">N/A</option>
+                    <option value="KS1">KS1</option>
+                    <option value="KS2">KS2</option>
+                    <option value="KS3">KS3</option>
+                    <option value="KS4">KS4</option>
+                    <option value="KS5">KS5</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Exam Board</label>
+                  <select id="ref-exam-board">
+                    <option value="">N/A</option>
+                    <option value="AQA">AQA</option>
+                    <option value="Edexcel">Edexcel</option>
+                    <option value="OCR">OCR</option>
+                    <option value="WJEC">WJEC</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Title *</label>
+                <input type="text" id="ref-title" placeholder="e.g. KS3 Science Expert Input" required>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="ref-description" placeholder="Brief description (optional)">
+              </div>
+              <div class="form-group">
+                <label>File (DOCX, PDF, XLSX, TXT) *</label>
+                <input type="file" id="ref-file" accept=".docx,.pdf,.xlsx,.xls,.txt,.md" required>
+              </div>
+            </form>
+            <div class="actions">
+              <button class="btn btn-primary" onclick="uploadRefDoc()">Upload & Parse</button>
+              <button class="btn btn-secondary" onclick="cancelRefUpload()">Cancel</button>
+            </div>
+            <div id="ref-upload-result" style="margin-top:8px;"></div>
+          </div>
+        </div>
+
+        <!-- Question Bank Tab -->
+        <div class="hub-tab-panel" id="hub-tab-question-bank">
+          <div class="pm-help">
+            <strong>What is this?</strong> Every assessment question you generate is saved here automatically.
+            Browse, star your favourites, and reuse them across different assessments.
+            Generate assessments from the lesson detail panel — they'll appear here.
+          </div>
+          <div id="assessment-list"></div>
         </div>
 
       </div>
@@ -814,8 +1256,8 @@
         </div>
 
         <div class="detail-card">
-          <h3 style="margin-top:0">Pipeline Actions</h3>
-          <p style="margin-bottom:12px; color:#86868b;">Generate via API, validate the output, then upload to Google Drive.</p>
+          <h3 style="margin-top:0">🔧 Pipeline — Generate → Check → Upload</h3>
+          <p style="margin-bottom:12px; color:#86868b; font-size:13px;">Step 1: Generate the booklet. Step 2: Validate it looks right. Step 3: Upload to Google Drive.</p>
           <div style="margin-bottom:12px;">
             <label style="display:block; font-weight:600; margin-bottom:6px; font-size:13px;">Model</label>
             <select id="model-select" style="padding:6px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:13px; width:100%;" onchange="updateModelNote()">
@@ -838,23 +1280,225 @@
         </div>
 
         <div class="detail-card">
-          <h3 style="margin-top:0">Master Prompt</h3>
-          <p style="margin-bottom:12px; color:#86868b;">Or copy and paste manually into a Claude Project conversation.</p>
+          <h3 style="margin-top:0">📋 Master Prompt</h3>
+          <p style="margin-bottom:12px; color:#86868b; font-size:13px;">This is the AI prompt that generates the booklet. You can also copy it and paste into Claude manually.</p>
           <div class="prompt-box" id="prompt-text">${escapeHtml(prompt)}<button class="btn-copy" onclick="copyPrompt()">Copy</button></div>
           <div class="actions">
             <button class="btn btn-primary" onclick="copyPrompt()">Copy Prompt</button>
             <button class="btn btn-secondary" onclick="copyAndMark()">Copy & Mark Generated</button>
           </div>
         </div>
+
+        <div class="detail-card" id="personalise-card">
+          <h3 style="margin-top:0">✨ Personalise This Lesson</h3>
+          <p style="font-size:12px; color:#86868b; margin-bottom:12px;">Once you've generated a booklet above, use these tools to adapt and extend it.</p>
+          <div class="pm-tabs">
+            <div class="pm-tab active" onclick="switchPMTab('feedback')">✏️ Edit</div>
+            <div class="pm-tab" onclick="switchPMTab('send')">🧩 SEND</div>
+            <div class="pm-tab" onclick="switchPMTab('booklet-types')">📗 Variants</div>
+            <div class="pm-tab" onclick="switchPMTab('presentation')">📊 Slides</div>
+            <div class="pm-tab" onclick="switchPMTab('assessment')">📝 Quiz</div>
+          </div>
+
+          <!-- Feedback tab -->
+          <div class="pm-tab-panel active" id="pm-tab-feedback">
+            <div class="pm-help">
+              <strong>How it works:</strong> Type what you'd change about the booklet in plain English.
+              Claude reads the existing booklet and makes your requested edits. The original is always backed up.
+            </div>
+            <textarea class="feedback-textarea" id="feedback-input"
+              placeholder="e.g. Section 2 has too much detail — simplify the language for a lower-ability group. Also add a sentence starter frame to the first knowledge check."></textarea>
+            <div class="actions" style="margin-top:10px;">
+              <button class="btn btn-primary" id="btn-apply-feedback"
+                onclick="applyFeedback(${lesson.year}, ${lesson.lesson_number})">
+                Apply Feedback via Claude
+              </button>
+            </div>
+            <div id="feedback-result" style="margin-top:12px;"></div>
+            <div id="feedback-history" style="margin-top:16px;"></div>
+          </div>
+
+          <!-- SEND tab -->
+          <div class="pm-tab-panel" id="pm-tab-send">
+            <div class="pm-help">
+              <strong>How it works:</strong> Pick a student from your SEND register, and Claude adapts the booklet
+              using their EHCP/IEP needs — adjusting language level, adding scaffolding, and modifying activities.
+              <a href="javascript:openStudentsModal()" style="color:#007aff;">Manage students →</a>
+            </div>
+            <select class="send-student-select" id="send-student-select">
+              <option value="">Loading students...</option>
+            </select>
+            <div class="actions">
+              <button class="btn btn-primary" id="btn-generate-send"
+                onclick="generateSendBooklet(${lesson.year}, ${lesson.lesson_number})">
+                Generate Personalised Booklet
+              </button>
+            </div>
+            <div id="send-result" style="margin-top:12px;"></div>
+            <div id="send-booklet-list" style="margin-top:16px;"></div>
+          </div>
+
+          <!-- Booklet Types tab -->
+          <div class="pm-tab-panel" id="pm-tab-booklet-types">
+            <div class="pm-help">
+              <strong>What are these?</strong> Different versions of the same lesson content for different purposes.
+              The <em>Teaching Booklet (Teacher)</em> includes a script and timing cues. The <em>Reflection Booklet</em>
+              is self-contained for absent pupils. Tick the ones you need and hit generate.
+            </div>
+            <div id="bt-options">
+              <label class="bt-option">
+                <input type="checkbox" value="teaching_student" checked>
+                <div>
+                  <div class="bt-label">📗 Teaching Booklet (Student)</div>
+                  <div class="bt-desc">Student version with gaps, activities, and practice questions.</div>
+                </div>
+              </label>
+              <label class="bt-option">
+                <input type="checkbox" value="teaching_teacher" checked>
+                <div>
+                  <div class="bt-label">📗 Teaching Booklet (Teacher)</div>
+                  <div class="bt-desc">Teacher version with full script, timing, model answers, and differentiation.</div>
+                </div>
+              </label>
+              <label class="bt-option">
+                <input type="checkbox" value="reflection">
+                <div>
+                  <div class="bt-label">📘 Reflection / Absence Booklet</div>
+                  <div class="bt-desc">Self-contained for home learning, detention, or student absence.</div>
+                </div>
+              </label>
+              <label class="bt-option">
+                <input type="checkbox" value="revision">
+                <div>
+                  <div class="bt-label">📙 Revision Booklet</div>
+                  <div class="bt-desc">End-of-unit revision using evidence-based techniques.</div>
+                </div>
+              </label>
+            </div>
+            <div class="actions" style="margin-top:12px;">
+              <button class="btn btn-primary" id="btn-generate-bt"
+                onclick="generateTypedBooklets(${lesson.year}, ${lesson.lesson_number})">
+                Generate Selected Types
+              </button>
+            </div>
+            <div id="bt-result" style="margin-top:12px;"></div>
+            <div id="bt-existing" style="margin-top:16px;"></div>
+          </div>
+
+          <!-- Presentation tab -->
+          <div class="pm-tab-panel" id="pm-tab-presentation">
+            <div class="pm-help">
+              <strong>How it works:</strong> AI reads the booklet and creates a slide deck that matches the lesson flow.
+              Download as PowerPoint (.pptx), or export to Gamma for a more interactive presentation.
+            </div>
+            <div style="margin-bottom:12px;">
+              <label class="checkbox-row">
+                <input type="checkbox" id="pres-speaker-notes" checked>
+                Include speaker notes (teaching script)
+              </label>
+              <label class="checkbox-row">
+                <input type="checkbox" id="pres-differentiation" checked>
+                Include differentiation guidance
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn btn-primary" id="btn-generate-pres"
+                onclick="generatePresentation(${lesson.year}, ${lesson.lesson_number})">
+                📊 Generate PowerPoint
+              </button>
+              <button class="btn btn-secondary" id="btn-gamma-export"
+                onclick="exportGamma(${lesson.year}, ${lesson.lesson_number})">
+                ✨ Export for Gamma
+              </button>
+            </div>
+            <div id="pres-result" style="margin-top:12px;"></div>
+          </div>
+
+          <!-- Assessment tab -->
+          <div class="pm-tab-panel" id="pm-tab-assessment">
+            <div class="pm-help">
+              <strong>How it works:</strong> Generate a quiz or end-of-lesson assessment based on this lesson's content.
+              Set how many questions of each type you want and hit generate. Every question is automatically
+              saved to your <a href="javascript:openCurriculumHub('question-bank')" style="color:#007aff;">Question Bank →</a>
+              for reuse.
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+              <div class="form-group">
+                <label>Multiple Choice</label>
+                <input type="number" id="assess-mc" value="10" min="0" max="30" style="width:100%">
+              </div>
+              <div class="form-group">
+                <label>Short Answer</label>
+                <input type="number" id="assess-short" value="8" min="0" max="20" style="width:100%">
+              </div>
+              <div class="form-group">
+                <label>Long Answer</label>
+                <input type="number" id="assess-long" value="3" min="0" max="10" style="width:100%">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Difficulty</label>
+              <select id="assess-difficulty" style="width:100%">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+            <div class="actions" style="margin-top:12px;">
+              <button class="btn btn-primary" id="btn-generate-assess"
+                onclick="generateLessonAssessment(${lesson.year}, ${lesson.lesson_number})">
+                📝 Generate Assessment
+              </button>
+            </div>
+            <div id="assess-result" style="margin-top:12px;"></div>
+          </div>
+        </div>
       `;
       // Show note for default model selection
       updateModelNote();
+      // Load feedback history + SEND students
+      loadFeedbackHistory(lesson.year, lesson.lesson_number);
+      loadSendStudentSelect();
+      loadSendBookletList(lesson.year, lesson.lesson_number);
+      loadTypedBooklets(lesson.year, lesson.lesson_number);
     }
 
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // ─── File result helpers ───
+
+    function buildFileRows(paths) {
+      // paths: { docx: '...', pdf: '...', md: '...', pptx: '...', svg: '...' }
+      const rows = [];
+      const labels = { docx: 'DOCX', pdf: 'PDF', md: 'MD', pptx: 'PPTX', svg: 'SVG' };
+      for (const [key, path] of Object.entries(paths)) {
+        if (!path) continue;
+        rows.push(`<div class="file-row"><span class="file-label">${labels[key] || key.toUpperCase()}</span><code>${escapeHtml(path)}</code></div>`);
+      }
+      return rows.length ? `<div class="result-files">${rows.join('')}</div>` : '';
+    }
+
+    function buildPreviewBtn(path) {
+      if (!path) return '';
+      return `<a class="btn-preview" href="/api/preview-file?path=${encodeURIComponent(path)}" target="_blank">Preview</a>`;
+    }
+
+    function buildOpenFolderBtn(path) {
+      if (!path) return '';
+      return `<button class="btn-open-folder" onclick="openFolder('${escapeHtml(path)}')">Open Folder</button>`;
+    }
+
+    async function openFolder(filePath) {
+      try {
+        await fetch('/api/open-folder', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ path: filePath })
+        });
+      } catch(e) { showToast('Could not open folder'); }
     }
 
     async function copyPrompt() {
@@ -1549,11 +2193,15 @@
       resultDiv.innerHTML = '<p style="color:#86868b">Sending to Claude API. This may take 1-2 minutes...</p>';
 
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 min
         const res = await fetch(`/api/generate/${year}/${lessonNum}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ replace, model }),
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
         const data = await res.json();
         if (data.error) {
           resultDiv.innerHTML = `<p style="color:#c62828">Error: ${data.error}</p>`;
@@ -1562,16 +2210,19 @@
           const cacheInfo = data.usage.cache_read_input_tokens
             ? ` · ${data.usage.cache_read_input_tokens.toLocaleString()} cached`
             : '';
-          const pdfInfo = data.pdf_path
-            ? `<br>PDF: <code>${data.pdf_path}</code>`
-            : '<br><span style="color:#b36b00">PDF conversion not available</span>';
           resultDiv.innerHTML = `
-            <div style="background:#e8f8ed; padding:12px; border-radius:8px; font-size:13px;">
-              <b style="font-size:14px;">${replace ? 'Replaced' : 'Generated'} successfully</b> in ${data.duration_s}s<br>
-              <span style="font-size:14px; font-weight:600; color:#1a7f37;">Cost: ${fmtCost(cost)}</span><br>
-              Tokens: ${data.usage.input_tokens.toLocaleString()} in / ${data.usage.output_tokens.toLocaleString()} out${cacheInfo}<br>
-              Model: ${data.model}<br>
-              DOCX: <code>${data.docx_path}</code>${pdfInfo}
+            <div class="result-card">
+              <div class="result-title">${replace ? 'Replaced' : 'Generated'} successfully in ${data.duration_s}s</div>
+              <div class="result-meta">
+                <span style="font-weight:600; color:#1a7f37;">Cost: ${fmtCost(cost)}</span> ·
+                Tokens: ${data.usage.input_tokens.toLocaleString()} in / ${data.usage.output_tokens.toLocaleString()} out${cacheInfo} ·
+                Model: ${data.model}
+              </div>
+              ${buildFileRows({ docx: data.docx_path, pdf: data.pdf_path })}
+              <div class="result-actions">
+                ${buildPreviewBtn(data.pdf_path || data.docx_path)}
+                ${buildOpenFolderBtn(data.docx_path)}
+              </div>
             </div>`;
           showToast('Booklet generated successfully');
           fetchLessons();
@@ -2169,10 +2820,1231 @@
       await refreshConfigStatus();
     }
 
+    // ─── Personalise Me — Tab switching ───
+
+    function switchPMTab(tabName) {
+      const names = ['feedback', 'send', 'booklet-types', 'presentation', 'assessment'];
+      document.querySelectorAll('.pm-tab').forEach((el, i) => {
+        el.classList.toggle('active', names[i] === tabName);
+      });
+      document.querySelectorAll('.pm-tab-panel').forEach(el => {
+        el.classList.toggle('active', el.id === `pm-tab-${tabName}`);
+      });
+    }
+
+    // ─── Feedback Engine ───
+
+    async function loadFeedbackHistory(year, lessonNum) {
+      const histEl = document.getElementById('feedback-history');
+      if (!histEl) return;
+      const courseId = document.getElementById('course-selector').value;
+      try {
+        const res = await fetch(`/api/feedback/${courseId}/${year}/${lessonNum}`);
+        const data = await res.json();
+        const history = data.history || [];
+        if (!history.length) {
+          histEl.innerHTML = '';
+          return;
+        }
+        histEl.innerHTML = `
+          <h4 style="font-size:12px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Previous Feedback</h4>
+          ${history.slice().reverse().map(h => `
+            <div class="feedback-history-item">
+              <div class="fb-date">${new Date(h.applied_at).toLocaleString('en-GB')} · ${h.model || ''} · ${h.duration_s}s</div>
+              <div class="fb-text">${escapeHtml(h.feedback_text)}</div>
+            </div>
+          `).join('')}
+        `;
+      } catch(e) {
+        histEl.innerHTML = '';
+      }
+    }
+
+    async function applyFeedback(year, lessonNum) {
+      const feedbackText = document.getElementById('feedback-input')?.value.trim();
+      if (!feedbackText) {
+        showToast('Please enter feedback first');
+        return;
+      }
+      const courseId = document.getElementById('course-selector').value;
+      const resultEl = document.getElementById('feedback-result');
+      const btn = document.getElementById('btn-apply-feedback');
+
+      btn.disabled = true;
+      btn.textContent = 'Applying feedback...';
+      resultEl.innerHTML = '<p style="color:#86868b; font-size:13px;">Sending to Claude. This may take 1-2 minutes...</p>';
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 min
+        const res = await fetch(`/api/feedback/${courseId}/${year}/${lessonNum}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedback_text: feedbackText }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        if (data.error) {
+          resultEl.innerHTML = `<p style="color:#c62828; font-size:13px;">Error: ${escapeHtml(data.error)}</p>`;
+        } else {
+          resultEl.innerHTML = `
+            <div class="result-card">
+              <div class="result-title">Feedback applied successfully in ${data.duration_s}s</div>
+              <div class="result-meta">
+                Tokens: ${data.usage.input_tokens.toLocaleString()} in / ${data.usage.output_tokens.toLocaleString()} out
+              </div>
+              ${buildFileRows({ docx: data.docx_path, pdf: data.pdf_path })}
+              <div class="result-actions">
+                ${buildPreviewBtn(data.pdf_path || data.docx_path)}
+                ${buildOpenFolderBtn(data.docx_path)}
+              </div>
+            </div>`;
+          document.getElementById('feedback-input').value = '';
+          showToast('Feedback applied — booklet updated');
+          loadFeedbackHistory(year, lessonNum);
+        }
+      } catch(e) {
+        resultEl.innerHTML = `<p style="color:#c62828; font-size:13px;">Error: ${e.message}</p>`;
+      }
+      btn.disabled = false;
+      btn.textContent = 'Apply Feedback via Claude';
+    }
+
+    // ─── SEND Engine ───
+
+    async function loadSendStudentSelect() {
+      const sel = document.getElementById('send-student-select');
+      if (!sel) return;
+      try {
+        const res = await fetch('/api/students');
+        const data = await res.json();
+        const students = data.students || [];
+        if (!students.length) {
+          sel.innerHTML = '<option value="">No students — add one via SEND Students button</option>';
+        } else {
+          sel.innerHTML = '<option value="">Select a student...</option>' +
+            students.map(s =>
+              `<option value="${s.id}">${escapeHtml(s.name)}${s.year ? ` (Y${s.year})` : ''}${s.send_types?.length ? ' · ' + s.send_types.join(', ') : ''}</option>`
+            ).join('');
+        }
+      } catch(e) {
+        sel.innerHTML = '<option value="">Error loading students</option>';
+      }
+    }
+
+    async function loadSendBookletList(year, lessonNum) {
+      const listEl = document.getElementById('send-booklet-list');
+      if (!listEl) return;
+      const courseId = document.getElementById('course-selector').value;
+      try {
+        const res = await fetch(`/api/send-booklets/${courseId}/${year}/${lessonNum}`);
+        const data = await res.json();
+        const booklets = data.booklets || [];
+        if (!booklets.length) {
+          listEl.innerHTML = '';
+          return;
+        }
+        listEl.innerHTML = `
+          <h4 style="font-size:12px; font-weight:600; color:#86868b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+            Existing SEND Booklets
+          </h4>
+          <div class="send-booklet-list">
+            ${booklets.map(b => `
+              <div class="send-booklet-item">
+                <span>👤 ${escapeHtml(b.student_name)}</span>
+                <span style="color:#86868b; font-size:12px;">${b.pdf_exists ? '📄 PDF ready' : '.docx only'}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } catch(e) {
+        listEl.innerHTML = '';
+      }
+    }
+
+    async function generateSendBooklet(year, lessonNum) {
+      const sel = document.getElementById('send-student-select');
+      const studentId = sel?.value;
+      if (!studentId) {
+        showToast('Please select a student');
+        return;
+      }
+      const courseId = document.getElementById('course-selector').value;
+      const resultEl = document.getElementById('send-result');
+      const btn = document.getElementById('btn-generate-send');
+
+      btn.disabled = true;
+      btn.textContent = 'Generating personalised booklet...';
+      resultEl.innerHTML = '<p style="color:#86868b; font-size:13px;">Sending to Claude. This may take 1-2 minutes...</p>';
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 min
+        const res = await fetch(`/api/send-booklet/${courseId}/${year}/${lessonNum}/${studentId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        if (data.error) {
+          resultEl.innerHTML = `<p style="color:#c62828; font-size:13px;">Error: ${escapeHtml(data.error)}</p>`;
+        } else {
+          resultEl.innerHTML = `
+            <div class="result-card">
+              <div class="result-title">Personalised booklet generated for ${escapeHtml(data.student?.name || '')} in ${data.duration_s}s</div>
+              <div class="result-meta">
+                Tokens: ${data.usage.input_tokens.toLocaleString()} in / ${data.usage.output_tokens.toLocaleString()} out
+              </div>
+              ${buildFileRows({ docx: data.docx_path, pdf: data.pdf_path })}
+              <div class="result-actions">
+                ${buildPreviewBtn(data.pdf_path || data.docx_path)}
+                ${buildOpenFolderBtn(data.docx_path)}
+              </div>
+            </div>`;
+          showToast(`SEND booklet created for ${data.student?.name}`);
+          loadSendBookletList(year, lessonNum);
+        }
+      } catch(e) {
+        resultEl.innerHTML = `<p style="color:#c62828; font-size:13px;">Error: ${e.message}</p>`;
+      }
+      btn.disabled = false;
+      btn.textContent = 'Generate Personalised Booklet';
+    }
+
+    // ─── SEND Students Modal ───
+
+    let editingStudentId = null;
+
+    async function openStudentsModal() {
+      document.getElementById('students-modal').classList.add('open');
+      document.getElementById('student-form-area').style.display = 'none';
+      await refreshStudentList();
+    }
+
+    function closeStudentsModal() {
+      document.getElementById('students-modal').classList.remove('open');
+      // Refresh SEND select if lesson is open
+      if (selectedLesson) {
+        loadSendStudentSelect();
+      }
+    }
+
+    async function refreshStudentList() {
+      const area = document.getElementById('student-list-area');
+      try {
+        const res = await fetch('/api/students');
+        const data = await res.json();
+        const students = data.students || [];
+        if (!students.length) {
+          area.innerHTML = '<p style="color:#86868b; font-size:13px; margin-bottom:12px;">No student profiles yet. Add your first student below.</p>';
+          return;
+        }
+        area.innerHTML = students.map(s => `
+          <div class="student-card">
+            <div class="student-name">${escapeHtml(s.name)}${s.year ? ` <span style="color:#86868b; font-weight:400; font-size:12px;">Year ${s.year}</span>` : ''}</div>
+            ${s.send_types?.length ? `<div class="send-type-tags">${s.send_types.map(t => `<span class="send-type-tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+            ${s.document ? `<div class="student-meta" style="margin-top:6px;">${s.document.length} chars of EHCP/IEP/ISP data</div>` : '<div class="student-meta" style="color:#c62828;">⚠ No EHCP/IEP/ISP document added</div>'}
+            <div class="student-actions">
+              <button class="btn btn-secondary btn-sm" onclick="editStudent('${s.id}')">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}', '${escapeHtml(s.name).replace(/'/g, "\\'")}')">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch(e) {
+        area.innerHTML = `<p style="color:#c62828; font-size:13px;">Error loading students: ${e.message}</p>`;
+      }
+    }
+
+    function showStudentForm(student = null) {
+      editingStudentId = student?.id || null;
+      const formArea = document.getElementById('student-form-area');
+      formArea.style.display = 'block';
+      document.getElementById('student-form-title').textContent = student ? 'Edit Student' : 'Add Student';
+      document.getElementById('student-id-field').value = student?.id || '';
+      document.getElementById('student-name').value = student?.name || '';
+      document.getElementById('student-year').value = student?.year || '';
+      document.getElementById('student-send-types').value = (student?.send_types || []).join(', ');
+      document.getElementById('student-document').value = student?.document || '';
+      document.getElementById('student-notes').value = student?.notes || '';
+      document.getElementById('student-form-error').textContent = '';
+      formArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function editStudent(studentId) {
+      try {
+        const res = await fetch(`/api/students/${studentId}`);
+        const student = await res.json();
+        showStudentForm(student);
+      } catch(e) {
+        showToast('Error loading student: ' + e.message);
+      }
+    }
+
+    function cancelStudentForm() {
+      document.getElementById('student-form-area').style.display = 'none';
+      editingStudentId = null;
+    }
+
+    async function saveStudent() {
+      const name = document.getElementById('student-name').value.trim();
+      const errEl = document.getElementById('student-form-error');
+      errEl.textContent = '';
+
+      if (!name) {
+        errEl.textContent = 'Student name is required.';
+        return;
+      }
+
+      const sendTypesStr = document.getElementById('student-send-types').value.trim();
+      const profile = {
+        id: editingStudentId || '',
+        name,
+        year: parseInt(document.getElementById('student-year').value) || null,
+        send_types: sendTypesStr ? sendTypesStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+        document: document.getElementById('student-document').value.trim(),
+        notes: document.getElementById('student-notes').value.trim(),
+      };
+
+      const method = editingStudentId ? 'PUT' : 'POST';
+      const url = editingStudentId ? `/api/students/${editingStudentId}` : '/api/students';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profile),
+        });
+        const data = await res.json();
+        if (data.error) {
+          errEl.textContent = data.error;
+          return;
+        }
+        showToast(editingStudentId ? 'Student updated' : 'Student added');
+        document.getElementById('student-form-area').style.display = 'none';
+        editingStudentId = null;
+        await refreshStudentList();
+      } catch(e) {
+        errEl.textContent = 'Error: ' + e.message;
+      }
+    }
+
+    async function deleteStudent(studentId, studentName) {
+      if (!confirm(`Delete student profile for "${studentName}"? This cannot be undone.`)) return;
+      try {
+        const res = await fetch(`/api/students/${studentId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.error) {
+          showToast('Error: ' + data.error);
+          return;
+        }
+        showToast('Student deleted');
+        await refreshStudentList();
+      } catch(e) {
+        showToast('Error: ' + e.message);
+      }
+    }
+
+    document.getElementById('students-modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('students-modal')) closeStudentsModal();
+    });
+
+    // ===================================================================
+    // Tier management (Prompt Sheet 12)
+    // ===================================================================
+    let currentTier = 'all_custom';
+
+    async function loadTier() {
+      try {
+        const res = await fetch('/api/tier');
+        const data = await res.json();
+        currentTier = data.tier;
+        const badge = document.getElementById('tier-badge');
+        badge.textContent = data.label.toUpperCase();
+        badge.className = 'tier-badge tier-' + data.tier;
+      } catch(e) { /* ignore */ }
+    }
+
+    function openTierModal() {
+      document.getElementById('tier-modal').classList.add('open');
+      renderTierOptions();
+    }
+    function closeTierModal() { document.getElementById('tier-modal').classList.remove('open'); }
+
+    async function renderTierOptions() {
+      const res = await fetch('/api/tier');
+      const info = await res.json();
+      const el = document.getElementById('tier-options');
+      el.innerHTML = info.all_tiers.map(t => `
+        <label class="bt-option ${t.id === info.tier ? 'selected' : ''}" style="cursor:pointer">
+          <input type="radio" name="tier-select" value="${t.id}" ${t.id === info.tier ? 'checked' : ''}
+                 onchange="setTier('${t.id}')">
+          <div>
+            <div class="bt-label">${t.label}</div>
+            <div class="bt-desc">${info.all_tiers.find(x=>x.id===t.id)?.description || ''}</div>
+          </div>
+        </label>
+      `).join('');
+    }
+
+    async function setTier(tier) {
+      await fetch('/api/tier', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({tier}) });
+      await loadTier();
+      renderTierOptions();
+      showToast('Tier updated to ' + tier.replace('_',' '));
+    }
+
+    // ===================================================================
+    // Curriculum Hub — Unified modal for Schemes + Maps + Ref Docs + Q Bank
+    // ===================================================================
+    function openCurriculumHub(tab) {
+      document.getElementById('curriculum-hub-modal').classList.add('open');
+      switchHubTab(tab || 'schemes');
+      // Load data for whichever tab we open
+      loadRefLibrary();
+      loadSchemesList();
+      loadProgressionMapsList();
+      loadSchemeSelectForMaps();
+      loadAssessmentsList();
+    }
+    function closeCurriculumHub() { document.getElementById('curriculum-hub-modal').classList.remove('open'); }
+
+    function switchHubTab(tabName) {
+      const names = ['schemes', 'maps', 'ref-docs', 'question-bank'];
+      document.querySelectorAll('.hub-tab').forEach((el, i) => {
+        el.classList.toggle('active', names[i] === tabName);
+      });
+      document.querySelectorAll('.hub-tab-panel').forEach(el => {
+        el.classList.toggle('active', el.id === `hub-tab-${tabName}`);
+      });
+    }
+
+    // Backwards-compatible aliases so existing onclick handlers still work
+    function openRefLibraryModal() { openCurriculumHub('ref-docs'); }
+    function closeRefLibraryModal() { closeCurriculumHub(); }
+    function openSchemesModal() { openCurriculumHub('schemes'); }
+    function closeSchemesModal() { closeCurriculumHub(); }
+    function openAssessmentModal() { openCurriculumHub('question-bank'); }
+    function closeAssessmentModal() { closeCurriculumHub(); }
+    function openProgressionMapsModal() { openCurriculumHub('maps'); }
+    function closeProgressionMapsModal() { closeCurriculumHub(); }
+
+    // ===================================================================
+    // Reference Library (Prompt Sheet 12)
+    // ===================================================================
+
+    async function loadRefLibrary() {
+      const res = await fetch('/api/reference-docs');
+      const data = await res.json();
+      const docs = data.documents || [];
+      const el = document.getElementById('ref-lib-content');
+
+      const categories = {
+        expert_input: {label: 'Expert Input Files', icon: '🧠'},
+        national_curriculum: {label: 'National Curriculum', icon: '📜'},
+        ks4_spec: {label: 'KS4/5 Specifications', icon: '📋'},
+        sow_exemplar: {label: 'Scheme of Work Exemplar', icon: '📊'},
+        great_lesson_code: {label: 'Great Lesson Codification', icon: '⭐'},
+      };
+
+      let html = '';
+      for (const [cat, info] of Object.entries(categories)) {
+        const catDocs = docs.filter(d => d.category === cat);
+        html += `<div class="ref-category">
+          <h4>${info.icon} ${info.label}</h4>`;
+        if (catDocs.length === 0) {
+          html += `<p style="font-size:13px; color:#86868b;">No documents uploaded.</p>`;
+        } else {
+          catDocs.forEach(d => {
+            html += `<div class="ref-doc-item">
+              <div>
+                <div class="ref-title">📄 ${d.title}</div>
+                <div class="ref-doc-meta">${d.subject||''} ${d.key_stage||''} ${d.exam_board||''} — ${d.file_format} — ${d.has_parsed_content ? '✅ Parsed' : '⏳ Not parsed'}</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-secondary btn-sm" onclick="deleteRefDoc('${d.id}')">Delete</button>
+              </div>
+            </div>`;
+          });
+        }
+        html += `</div>`;
+      }
+      html += `<div class="actions" style="margin-top:16px;">
+        <button class="btn btn-primary" onclick="showRefUploadForm()">+ Upload Document</button>
+      </div>`;
+      el.innerHTML = html;
+    }
+
+    function showRefUploadForm() { document.getElementById('ref-upload-form').style.display = 'block'; }
+    function cancelRefUpload() { document.getElementById('ref-upload-form').style.display = 'none'; }
+
+    async function uploadRefDoc() {
+      const fileInput = document.getElementById('ref-file');
+      if (!fileInput.files.length) { showToast('Please select a file'); return; }
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('category', document.getElementById('ref-category').value);
+      formData.append('title', document.getElementById('ref-title').value);
+      formData.append('subject', document.getElementById('ref-subject').value);
+      formData.append('key_stage', document.getElementById('ref-key-stage').value);
+      formData.append('exam_board', document.getElementById('ref-exam-board').value);
+      formData.append('description', document.getElementById('ref-description').value);
+
+      const resultEl = document.getElementById('ref-upload-result');
+      resultEl.innerHTML = '<span style="color:#007aff;">Uploading and parsing...</span>';
+
+      try {
+        const res = await fetch('/api/reference-docs/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + data.error + '</span>'; return; }
+        showToast('Document uploaded and parsed');
+        cancelRefUpload();
+        document.getElementById('ref-upload-form-el').reset();
+        loadRefLibrary();
+      } catch(e) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>'; }
+    }
+
+    async function deleteRefDoc(docId) {
+      if (!confirm('Delete this reference document?')) return;
+      await fetch('/api/reference-docs/' + docId, { method: 'DELETE' });
+      showToast('Document deleted');
+      loadRefLibrary();
+    }
+
+    // ===================================================================
+    // Schemes of Work (Prompt Sheet 13)
+    // ===================================================================
+
+    let _allSchemeSubjects = [];
+
+    async function loadSchemesList() {
+      const res = await fetch('/api/schemes');
+      const data = await res.json();
+      let schemes = data.schemes || [];
+      const el = document.getElementById('schemes-list');
+
+      // Build subject dropdown from all data
+      const subjects = [...new Set(schemes.map(s => s.subject).filter(Boolean))].sort();
+      if (JSON.stringify(subjects) !== JSON.stringify(_allSchemeSubjects)) {
+        _allSchemeSubjects = subjects;
+        const sel = document.getElementById('scheme-filter-subject');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">All Subjects</option>' +
+          subjects.map(s => `<option value="${s}" ${s===cur?'selected':''}>${s}</option>`).join('');
+      }
+
+      // Apply filters
+      const fSubject = document.getElementById('scheme-filter-subject').value;
+      const fKS = document.getElementById('scheme-filter-ks').value;
+      if (fSubject) schemes = schemes.filter(s => s.subject.toLowerCase() === fSubject.toLowerCase());
+      if (fKS) schemes = schemes.filter(s => s.key_stage.toLowerCase() === fKS.toLowerCase());
+
+      if (schemes.length === 0) {
+        el.innerHTML = '<p style="color:#86868b; font-size:13px;">No schemes found. Import from a course, upload a file, or generate a new one.</p>';
+        return;
+      }
+
+      el.innerHTML = schemes.map(s => {
+        const sourceIcon = s.source === 'ai_generated' ? '🤖' : s.source === 'file_upload' ? '📄' : '📥';
+        const sourceLabel = s.source === 'ai_generated' ? 'AI Generated' : s.source === 'file_upload' ? 'File Upload' : 'Imported';
+        return `
+        <div class="scheme-card" style="cursor:pointer; position:relative;" onclick="viewScheme('${s.id}')">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div class="scheme-title">${s.title || s.subject + ' — Year ' + s.year_group}</div>
+              <div class="scheme-meta">
+                ${s.subject} · ${s.key_stage} · Year ${s.year_group} · ${s.total_lessons} lessons
+                ${s.exam_board ? ' · ' + s.exam_board : ''}
+                ${s.has_review ? ' · <span class="review-rating rating-good">Reviewed</span>' : ''}
+              </div>
+              <div style="font-size:11px; color:#aaa; margin-top:2px;">
+                ${sourceIcon} ${sourceLabel}
+                ${s.updated_at ? ' · Updated ' + new Date(s.updated_at).toLocaleDateString() : ''}
+              </div>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // --- Import Dialog ---
+    function showImportSchemeDialog() {
+      document.getElementById('scheme-import-dialog').style.display = 'block';
+      document.getElementById('scheme-generate-form').style.display = 'none';
+      document.getElementById('scheme-import-result').innerHTML = '';
+      switchImportTab('course');
+    }
+    function hideImportDialog() {
+      document.getElementById('scheme-import-dialog').style.display = 'none';
+    }
+    function switchImportTab(tab) {
+      const courseBtn = document.getElementById('import-tab-course');
+      const fileBtn = document.getElementById('import-tab-file');
+      const coursePanel = document.getElementById('import-panel-course');
+      const filePanel = document.getElementById('import-panel-file');
+      if (tab === 'course') {
+        courseBtn.className = 'btn btn-primary btn-sm'; courseBtn.style.opacity = '1';
+        fileBtn.className = 'btn btn-secondary btn-sm'; fileBtn.style.opacity = '0.6';
+        coursePanel.style.display = 'block'; filePanel.style.display = 'none';
+      } else {
+        fileBtn.className = 'btn btn-primary btn-sm'; fileBtn.style.opacity = '1';
+        courseBtn.className = 'btn btn-secondary btn-sm'; courseBtn.style.opacity = '0.6';
+        filePanel.style.display = 'block'; coursePanel.style.display = 'none';
+      }
+    }
+
+    let _schemeFileToUpload = null;
+    function handleSchemeDrop(e) {
+      e.preventDefault();
+      e.currentTarget.style.background = 'transparent';
+      const file = e.dataTransfer.files[0];
+      if (file) { _schemeFileToUpload = file; showSchemeFileName(file.name); }
+    }
+    function schemeFileSelected(input) {
+      if (input.files[0]) { _schemeFileToUpload = input.files[0]; showSchemeFileName(input.files[0].name); }
+    }
+    function showSchemeFileName(name) {
+      const el = document.getElementById('scheme-file-name');
+      el.textContent = '✅ ' + name;
+      el.style.display = 'block';
+    }
+
+    async function importSchemeFromCourse() {
+      const resultEl = document.getElementById('scheme-import-result');
+      resultEl.innerHTML = '<span style="color:#007aff;">Importing scheme from current course...</span>';
+      try {
+        const res = await fetch('/api/schemes/import', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + escapeHtml(data.error) + '</span>'; return; }
+        const path = data.file_path || '';
+        resultEl.innerHTML = `
+          <div class="result-card">
+            <div style="font-size:14px; font-weight:600; color:#34c759;">✅ Scheme imported: ${escapeHtml(data.scheme?.title || '')}</div>
+            <div style="font-size:12px; color:#86868b; margin-top:4px;">
+              ${data.scheme?.totalLessons || 0} lessons · ${data.scheme?.subject || ''} · ${data.scheme?.keyStage || ''}
+            </div>
+            ${path ? `<div style="font-size:11px; color:#aaa; margin-top:4px;">📁 Stored at: ${escapeHtml(path)}</div>` : ''}
+          </div>`;
+        showToast('Scheme imported successfully');
+        loadSchemesList();
+      } catch(e) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>'; }
+    }
+
+    async function uploadSchemeFile() {
+      if (!_schemeFileToUpload) { showToast('Please select a file first'); return; }
+      const subject = document.getElementById('import-subject').value;
+      const ks = document.getElementById('import-ks').value;
+      const year = document.getElementById('import-year').value;
+      if (!subject) { showToast('Subject is required'); return; }
+
+      const resultEl = document.getElementById('scheme-import-result');
+      resultEl.innerHTML = '<span style="color:#007aff;">Uploading and parsing file...</span>';
+
+      const formData = new FormData();
+      formData.append('file', _schemeFileToUpload);
+      formData.append('subject', subject);
+      formData.append('key_stage', ks);
+      formData.append('year_group', year);
+      formData.append('exam_board', document.getElementById('import-board').value);
+
+      try {
+        const res = await fetch('/api/schemes/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + escapeHtml(data.error) + '</span>'; return; }
+        const path = data.file_path || '';
+        resultEl.innerHTML = `
+          <div class="result-card">
+            <div style="font-size:14px; font-weight:600; color:#34c759;">✅ Scheme uploaded: ${escapeHtml(data.scheme?.title || '')}</div>
+            <div style="font-size:12px; color:#86868b; margin-top:4px;">
+              ${data.scheme?.totalLessons || 0} lessons parsed from file
+            </div>
+            ${path ? `<div style="font-size:11px; color:#aaa; margin-top:4px;">📁 Stored at: ${escapeHtml(path)}</div>` : ''}
+          </div>`;
+        showToast('Scheme uploaded successfully');
+        _schemeFileToUpload = null;
+        loadSchemesList();
+      } catch(e) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>'; }
+    }
+
+    // --- Generate ---
+    function showGenerateSchemeForm() {
+      document.getElementById('scheme-generate-form').style.display = 'block';
+      document.getElementById('scheme-import-dialog').style.display = 'none';
+    }
+    function cancelGenerateScheme() { document.getElementById('scheme-generate-form').style.display = 'none'; }
+    function updateSowYearOptions() {
+      const scope = document.getElementById('sow-scope').value;
+      const yearGroup = document.getElementById('sow-year-group');
+      if (scope === 'whole_ks') {
+        yearGroup.style.display = 'none';
+      } else {
+        yearGroup.style.display = '';
+      }
+    }
+
+    async function generateScheme() {
+      const resultEl = document.getElementById('sow-gen-result');
+      resultEl.innerHTML = '<span style="color:#007aff;">✨ Generating scheme via Claude (this may take 30-60s)...</span>';
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 300000);
+        const res = await fetch('/api/schemes/generate', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          signal: controller.signal,
+          body: JSON.stringify({
+            subject: document.getElementById('sow-subject').value,
+            key_stage: document.getElementById('sow-ks').value,
+            scope: document.getElementById('sow-scope').value,
+            year_group: document.getElementById('sow-scope').value === 'whole_ks' ? null : document.getElementById('sow-year').value,
+            lessons_per_week: document.getElementById('sow-lpw').value,
+            weeks_per_term: document.getElementById('sow-wpt').value,
+            exam_board: document.getElementById('sow-board').value,
+            priorities: document.getElementById('sow-priorities').value,
+            exclusions: document.getElementById('sow-exclusions').value,
+          })
+        });
+        const data = await res.json();
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + escapeHtml(data.error) + '</span>'; return; }
+        const msg = data.message
+          ? `<div style="font-size:12px; color:#34c759; margin-top:4px;">${escapeHtml(data.message)}</div>`
+          : '';
+        resultEl.innerHTML = `
+          <div class="result-card">
+            <div style="font-size:14px; font-weight:600; color:#34c759;">✅ Scheme generated: ${escapeHtml(data.scheme?.title || '')}</div>
+            <div style="font-size:12px; color:#86868b; margin-top:4px;">
+              ${data.scheme?.totalLessons || 0} lessons · ${data.scheme?.subject || ''} · ${data.scheme?.keyStage || ''}
+            </div>
+            ${msg}
+          </div>`;
+        showToast('Scheme generated successfully');
+        loadSchemesList();
+      } catch(e) {
+        if (e.name === 'AbortError') {
+          resultEl.innerHTML = '<span style="color:#ff3b30;">Generation timed out. Try simplifying (fewer lessons).</span>';
+        } else {
+          resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>';
+        }
+      }
+    }
+
+    // --- View scheme ---
+    async function viewScheme(schemeId) {
+      const res = await fetch('/api/schemes/' + schemeId);
+      const scheme = await res.json();
+      const area = document.getElementById('scheme-review-area');
+      area.style.display = 'block';
+
+      let lessonsHtml = '';
+      let totalCount = 0;
+      (scheme.terms || []).forEach(term => {
+        lessonsHtml += `<h4 style="margin-top:12px; color:#1d1d1f;">${term.name}</h4>`;
+        (term.units || []).forEach(unit => {
+          const lCount = (unit.lessons||[]).length;
+          totalCount += lCount;
+          lessonsHtml += `<div style="margin-left:12px; margin-bottom:8px;">
+            <strong>${escapeHtml(unit.title)}</strong> (${lCount} lessons)
+            ${unit.endOfUnitAssessment ? '<span class="tag tag-rp">Assessment</span>' : ''}
+          </div>`;
+        });
+      });
+
+      const sourceIcon = scheme.source === 'ai_generated' ? '🤖 AI Generated' : scheme.source === 'file_upload' ? '📄 File Upload' : '📥 Imported from Course';
+      const schemePath = scheme.id ? 'data/schemes/' + scheme.id + '.json' : '';
+
+      area.innerHTML = `
+        <h3 style="font-size:16px;">${escapeHtml(scheme.title || scheme.subject)}</h3>
+        <p style="color:#86868b; font-size:13px;">
+          ${escapeHtml(scheme.subject || '')} · ${escapeHtml(scheme.keyStage || '')} · Year ${scheme.yearGroup || '?'} · ${scheme.totalLessons || totalCount} lessons
+          ${scheme.examBoard ? ' · ' + escapeHtml(scheme.examBoard) : ''}
+        </p>
+        <div style="font-size:12px; color:#aaa; margin-bottom:12px;">
+          ${sourceIcon}
+          ${scheme.created_at ? ' · Created ' + new Date(scheme.created_at).toLocaleDateString() : ''}
+          ${schemePath ? ' · 📁 ' + schemePath : ''}
+        </div>
+        ${lessonsHtml}
+        <div class="actions" style="margin-top:16px; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="reviewScheme('${schemeId}')">🔍 AI Review</button>
+          <button class="btn btn-secondary" onclick="exportSchemeExcel('${schemeId}')">📊 Export Excel</button>
+          <button class="btn btn-secondary" onclick="saveSchemeToDrive('${schemeId}')">☁️ Save to Drive</button>
+          <button class="btn btn-secondary" onclick="generateProgressionMap('${schemeId}')">🗺️ Progression Map</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteScheme('${schemeId}')">Delete</button>
+        </div>
+        <div id="scheme-review-result" style="margin-top:16px;"></div>
+      `;
+    }
+
+    async function saveSchemeToDrive(schemeId) {
+      showToast('Uploading scheme to Google Drive...');
+      try {
+        const res = await fetch('/api/schemes/' + schemeId + '/save-to-drive', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+        const data = await res.json();
+        if (data.error) { showToast('Error: ' + data.error); return; }
+        showToast('Scheme saved to Google Drive');
+        if (data.web_link) window.open(data.web_link, '_blank');
+      } catch(e) { showToast('Error: ' + e.message); }
+    }
+
+    async function reviewScheme(schemeId) {
+      const el = document.getElementById('scheme-review-result');
+      el.innerHTML = '<span style="color:#007aff;">Running AI review (this may take 30-60s)...</span>';
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 300000);
+        const res = await fetch('/api/schemes/' + schemeId + '/review', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          signal: controller.signal, body: '{}'
+        });
+        const data = await res.json();
+        if (data.error) { el.innerHTML = '<span style="color:#ff3b30;">Error: ' + data.error + '</span>'; return; }
+        const r = data.review;
+        const ratingClass = 'rating-' + (r.overallRating || 'good');
+        el.innerHTML = `
+          <div class="review-rating ${ratingClass}" style="font-size:14px; padding:4px 12px; margin-bottom:12px;">
+            ${r.overallRating?.toUpperCase().replace('_',' ')}
+          </div>
+          <p style="margin-bottom:12px;">${r.overallSummary || ''}</p>
+          ${(r.strengths||[]).length ? '<h4>Strengths</h4>' + r.strengths.map(s=>`<div style="padding:6px 12px; background:#e8f8ed; border-radius:6px; margin-bottom:4px; font-size:13px;">✅ <b>${s.area}</b>: ${s.detail}</div>`).join('') : ''}
+          ${(r.improvements||[]).length ? '<h4 style="margin-top:12px;">Improvements</h4>' + r.improvements.map(s=>`<div style="padding:6px 12px; background:#fff3e0; border-radius:6px; margin-bottom:4px; font-size:13px;">${s.priority==='critical'?'🔴':'🟡'} <b>${s.area}</b>: ${s.issue}<br><i>${s.suggestion}</i></div>`).join('') : ''}
+          ${(r.missingContent||[]).length ? '<h4 style="margin-top:12px;">Missing Content</h4>' + r.missingContent.map(m=>`<div style="padding:6px 12px; background:#fce4ec; border-radius:6px; margin-bottom:4px; font-size:13px;">❌ ${m.topic} — ${m.source} — Suggested: ${m.suggestedPlacement}</div>`).join('') : ''}
+        `;
+      } catch(e) {
+        if (e.name === 'AbortError') {
+          el.innerHTML = '<span style="color:#ff3b30;">Review timed out.</span>';
+        } else {
+          el.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>';
+        }
+      }
+    }
+
+    async function deleteScheme(schemeId) {
+      if (!confirm('Delete this scheme?')) return;
+      await fetch('/api/schemes/' + schemeId, { method: 'DELETE' });
+      showToast('Scheme deleted');
+      document.getElementById('scheme-review-area').style.display = 'none';
+      loadSchemesList();
+    }
+
+    async function exportSchemeExcel(schemeId) {
+      window.open('/api/schemes/' + schemeId + '/export-excel', '_blank');
+    }
+
+    // ===================================================================
+    // Progression Map (Prompt Sheet 14)
+    // ===================================================================
+    async function generateProgressionMap(schemeId) {
+      showToast('Generating progression map (30-60s)...');
+      try {
+        const res = await fetch('/api/progression-maps/generate', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ scheme_id: schemeId })
+        });
+        const data = await res.json();
+        if (data.error) { showToast('Error: ' + data.error); return; }
+        showToast('Progression map generated!');
+        viewProgressionMap(data.map.id);
+      } catch(e) { showToast('Error: ' + e.message); }
+    }
+
+    async function viewProgressionMap(mapId, target) {
+      const area = document.getElementById(target || 'progression-map-viewer');
+      if (!area) return;
+      area.innerHTML = '<p style="color:#86868b;">Loading map...</p>';
+
+      try {
+        const [svgRes, dataRes] = await Promise.all([
+          fetch('/api/progression-maps/' + mapId + '/svg'),
+          fetch('/api/progression-maps/' + mapId),
+        ]);
+        const svg = await svgRes.text();
+        const mapInfo = await dataRes.json();
+        const exported = mapInfo.exported_files || {};
+
+        area.innerHTML = `
+          <div style="border:1px solid #333; border-radius:10px; overflow:auto; max-height:600px; background:#1a1a2e;">
+            ${svg}
+          </div>
+          <div class="result-card" style="margin-top:10px;">
+            <div class="result-title">${escapeHtml(mapInfo.title || 'Progression Map')}</div>
+            <div class="result-meta">
+              ${mapInfo.subject || ''} · Year ${mapInfo.yearGroup || '?'} ·
+              ${(mapInfo.nodes||[]).length} units · ${(mapInfo.connections||[]).length} connections
+            </div>
+            ${buildFileRows({ svg: exported.svg, pdf: exported.pdf })}
+            <div class="result-actions" style="flex-wrap:wrap;">
+              <a class="btn-preview" href="/api/progression-maps/${mapId}/svg" target="_blank">Open SVG</a>
+              <a class="btn-preview" href="/api/progression-maps/${mapId}/download/svg" style="background:#34c759;">⬇ Download SVG</a>
+              ${exported.pdf ? '<a class="btn-preview" href="/api/progression-maps/' + mapId + '/download/pdf" style="background:#ff9500;">⬇ Download PDF</a>' : ''}
+              <button class="btn-open-folder" onclick="saveMapToDrive('${mapId}')">☁️ Save to Google Drive</button>
+              ${exported.svg ? buildOpenFolderBtn(exported.svg) : ''}
+              <button class="btn btn-danger btn-sm" onclick="deleteProgressionMap('${mapId}')">Delete</button>
+            </div>
+          </div>
+        `;
+      } catch(e) {
+        area.innerHTML = '<p style="color:#ff3b30;">Error loading map: ' + e.message + '</p>';
+      }
+    }
+
+    async function saveMapToDrive(mapId) {
+      showToast('Uploading to Google Drive...');
+      try {
+        const res = await fetch('/api/progression-maps/' + mapId + '/save-to-drive', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.error) { showToast('Drive error: ' + data.error); return; }
+        if (data.web_link) {
+          window.open(data.web_link, '_blank');
+          showToast('Saved to Google Drive!');
+        } else {
+          showToast('Uploaded but no link returned');
+        }
+      } catch(e) { showToast('Drive upload failed: ' + e.message); }
+    }
+
+    // ─── Progression Maps (now in Curriculum Hub) ───
+
+    async function loadProgressionMapsList() {
+      const el = document.getElementById('progression-maps-list');
+      try {
+        const res = await fetch('/api/progression-maps');
+        const data = await res.json();
+        const maps = data.maps || [];
+        if (!maps.length) {
+          el.innerHTML = '<p style="color:#86868b; font-size:13px;">No learning journey maps yet. Generate one from the current course or a scheme of work.</p>';
+          return;
+        }
+        el.innerHTML = maps.map(m => `
+          <div class="scheme-card" style="cursor:default;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div class="scheme-title">${escapeHtml(m.title || 'Untitled Map')}</div>
+                <div class="scheme-meta">${m.subject || ''} · ${m.node_count || 0} units · ${m.connection_count || 0} connections · ${m.created_at ? new Date(m.created_at).toLocaleDateString() : ''}</div>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn-preview" onclick="viewProgressionMap('${m.id}', 'progression-map-viewer')">👁 Preview</button>
+                <a class="btn-preview" href="/api/progression-maps/${m.id}/download/svg" style="background:#34c759; text-decoration:none;">⬇ SVG</a>
+                <button class="btn-open-folder" onclick="window.open('/api/progression-maps/${m.id}/svg','_blank')">Open in Tab</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteProgressionMap('${m.id}')">Delete</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch(e) {
+        el.innerHTML = '<p style="color:#ff3b30;">Error loading maps: ' + e.message + '</p>';
+      }
+    }
+
+    async function loadSchemeSelectForMaps() {
+      const sel = document.getElementById('map-from-scheme-select');
+      try {
+        const res = await fetch('/api/schemes');
+        const data = await res.json();
+        const schemes = data.schemes || [];
+        sel.innerHTML = '<option value="">— or pick a scheme —</option>' +
+          schemes.map(s => `<option value="${s.id}">${s.title || s.subject} (${s.id})</option>`).join('');
+      } catch(e) { /* ignore */ }
+    }
+
+    async function generateMapFromSelectedScheme() {
+      const sel = document.getElementById('map-from-scheme-select');
+      const schemeId = sel.value;
+      if (!schemeId) { showToast('Select a scheme first'); return; }
+      const viewer = document.getElementById('progression-map-viewer');
+      viewer.innerHTML = '<p style="color:#007aff;">🗺️ Generating learning journey map (30-60s)...</p>';
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000);
+        const res = await fetch('/api/progression-maps/generate', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ scheme_id: schemeId }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        if (data.error) { viewer.innerHTML = '<p style="color:#ff3b30;">Error: ' + data.error + '</p>'; return; }
+        showToast('Learning journey map generated!');
+        loadProgressionMapsList();
+        viewProgressionMap(data.map.id, 'progression-map-viewer');
+      } catch(e) {
+        const msg = e.name === 'AbortError' ? 'Request timed out — try again' : e.message;
+        viewer.innerHTML = '<p style="color:#ff3b30;">Error: ' + msg + '</p>';
+      }
+    }
+
+    async function generateMapFromCurrentCourse() {
+      const courseId = document.getElementById('course-selector').value;
+      if (!courseId) { showToast('No course selected'); return; }
+      const viewer = document.getElementById('progression-map-viewer');
+      viewer.innerHTML = '<p style="color:#007aff;">🗺️ Step 1/2 — Importing scheme from course...</p>';
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000);
+
+        // Step 1: Import the scheme from the course
+        const importRes = await fetch('/api/schemes/import', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ course_id: courseId }),
+          signal: controller.signal,
+        });
+        const importData = await importRes.json();
+        if (importData.error) { viewer.innerHTML = '<p style="color:#ff3b30;">Error importing scheme: ' + importData.error + '</p>'; clearTimeout(timeout); return; }
+        const schemeId = importData.scheme?.id;
+        if (!schemeId) { viewer.innerHTML = '<p style="color:#ff3b30;">Failed to get scheme ID</p>'; clearTimeout(timeout); return; }
+
+        viewer.innerHTML = '<p style="color:#007aff;">🗺️ Step 2/2 — Generating learning journey map (30-60s)...</p>';
+
+        // Step 2: Generate the progression map
+        const res = await fetch('/api/progression-maps/generate', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ scheme_id: schemeId }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        if (data.error) { viewer.innerHTML = '<p style="color:#ff3b30;">Error: ' + data.error + '</p>'; return; }
+        showToast('Learning journey map generated!');
+        loadProgressionMapsList();
+        viewProgressionMap(data.map.id, 'progression-map-viewer');
+      } catch(e) {
+        const msg = e.name === 'AbortError' ? 'Request timed out — try again' : e.message;
+        viewer.innerHTML = '<p style="color:#ff3b30;">Error: ' + msg + '</p>';
+      }
+    }
+
+    async function deleteProgressionMap(mapId) {
+      if (!confirm('Delete this progression map?')) return;
+      await fetch('/api/progression-maps/' + mapId, { method: 'DELETE' });
+      showToast('Map deleted');
+      document.getElementById('progression-map-viewer').innerHTML = '';
+      loadProgressionMapsList();
+    }
+
+    // ===================================================================
+    // Booklet Types (Prompt Sheet 15)
+    // ===================================================================
+    async function generateTypedBooklets(year, lessonNum) {
+      const checks = document.querySelectorAll('#bt-options input[type=checkbox]:checked');
+      const types = Array.from(checks).map(c => c.value);
+      if (types.length === 0) { showToast('Select at least one booklet type'); return; }
+
+      const resultEl = document.getElementById('bt-result');
+      const btn = document.getElementById('btn-generate-bt');
+      btn.disabled = true;
+
+      let results = [];
+      for (const type of types) {
+        resultEl.innerHTML = `<span style="color:#007aff;">Generating ${type.replace('_',' ')}... (${results.length+1}/${types.length}). Each may take 1-2 minutes.</span>`;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 300000); // 5 min timeout per type
+          const res = await fetch('/api/booklet-types/generate', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ year, lesson_num: lessonNum, type }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+          const data = await res.json();
+          if (data.error) { results.push({type, error: data.error}); }
+          else { results.push({type, success: true, duration_s: data.duration_s, docx_path: data.docx_path, pdf_path: data.pdf_path, md_path: data.md_path}); }
+        } catch(e) {
+          const msg = e.name === 'AbortError' ? 'Request timed out (5 min). Try generating this type on its own.' : e.message;
+          results.push({type, error: msg});
+        }
+      }
+
+      btn.disabled = false;
+      resultEl.innerHTML = results.map(r => {
+        if (r.success) {
+          return `<div class="result-card" style="margin-bottom:8px;">
+            <div class="result-title">${r.type.replace('_',' ')} generated in ${r.duration_s}s</div>
+            ${buildFileRows({ docx: r.docx_path, pdf: r.pdf_path, md: r.md_path })}
+            <div class="result-actions">
+              ${buildPreviewBtn(r.pdf_path || r.docx_path)}
+              ${buildOpenFolderBtn(r.docx_path)}
+            </div>
+          </div>`;
+        }
+        return `<div class="result-card-error">❌ ${r.type.replace('_',' ')}: ${r.error}</div>`;
+      }).join('');
+      loadTypedBooklets(year, lessonNum);
+    }
+
+    async function loadTypedBooklets(year, lessonNum) {
+      const el = document.getElementById('bt-existing');
+      try {
+        const res = await fetch(`/api/booklet-types/list/${year}/${lessonNum}`);
+        const data = await res.json();
+        const booklets = data.booklets || [];
+        if (booklets.length === 0) { el.innerHTML = ''; return; }
+        el.innerHTML = '<h4 style="font-size:13px; color:#86868b; margin-bottom:8px;">Existing Typed Booklets</h4>' +
+          booklets.map(b => {
+            const pdfPath = b.pdf_exists ? b.docx_path.replace('.docx','.pdf') : null;
+            return `<div class="send-booklet-item" style="flex-wrap:wrap;">
+              <span>${b.type_label} ${b.pdf_exists ? '📄' : ''}</span>
+              <div style="display:flex; gap:6px;">
+                ${buildPreviewBtn(pdfPath || b.docx_path)}
+                ${buildOpenFolderBtn(b.docx_path)}
+              </div>
+            </div>`;
+          }).join('');
+      } catch(e) { el.innerHTML = ''; }
+    }
+
+    // ===================================================================
+    // Presentation (Prompt Sheet 16)
+    // ===================================================================
+    async function generatePresentation(year, lessonNum) {
+      const btn = document.getElementById('btn-generate-pres');
+      const resultEl = document.getElementById('pres-result');
+      btn.disabled = true;
+      resultEl.innerHTML = '<span style="color:#007aff;">Generating PowerPoint presentation (30-60s)...</span>';
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 min
+        const res = await fetch('/api/presentations/generate', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            year, lesson_num: lessonNum,
+            include_speaker_notes: document.getElementById('pres-speaker-notes').checked,
+            include_differentiation: document.getElementById('pres-differentiation').checked,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        btn.disabled = false;
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + data.error + '</span>'; return; }
+        const p = data.presentation;
+        resultEl.innerHTML = `
+          <div class="result-card">
+            <div class="result-title">Presentation generated — ${p.slide_count} slides in ${p.duration_s}s</div>
+            ${buildFileRows({ pptx: p.pptx_path })}
+            <div class="result-actions">
+              <a href="/api/presentations/${p.id}/download" class="btn-preview">Download PPTX</a>
+              ${buildOpenFolderBtn(p.pptx_path)}
+            </div>
+          </div>
+        `;
+      } catch(e) { btn.disabled = false; resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>'; }
+    }
+
+    async function exportGamma(year, lessonNum) {
+      const resultEl = document.getElementById('pres-result');
+      resultEl.innerHTML = '<span style="color:#007aff;">Generating Gamma export...</span>';
+      try {
+        const res = await fetch('/api/presentations/gamma', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ year, lesson_num: lessonNum })
+        });
+        const data = await res.json();
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + data.error + '</span>'; return; }
+        resultEl.innerHTML = `
+          <div style="background:#f5f5f7; border-radius:8px; padding:12px;">
+            <p style="font-size:13px; color:#86868b; margin-bottom:8px;">Copy this text and paste into Gamma's "Import from text" feature:</p>
+            <div class="prompt-box" style="max-height:300px; font-size:12px;">${escapeHtml(data.gamma_text)}<button class="btn-copy" onclick="navigator.clipboard.writeText(document.getElementById('gamma-text').textContent);this.textContent='Copied!'">Copy</button></div>
+            <div id="gamma-text" style="display:none;">${escapeHtml(data.gamma_text)}</div>
+          </div>
+        `;
+      } catch(e) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>'; }
+    }
+
+    // ===================================================================
+    // Assessment — inline (Prompt Sheet 17)
+    // ===================================================================
+    async function generateLessonAssessment(year, lessonNum) {
+      const btn = document.getElementById('btn-generate-assess');
+      const resultEl = document.getElementById('assess-result');
+      btn.disabled = true;
+      resultEl.innerHTML = '<span style="color:#007aff;">Generating assessment (30-60s)...</span>';
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 300000); // 5 min
+        const res = await fetch('/api/assessments/generate', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            lessons: [{ year, lesson_num: lessonNum }],
+            num_mc: parseInt(document.getElementById('assess-mc').value) || 10,
+            num_short: parseInt(document.getElementById('assess-short').value) || 8,
+            num_long: parseInt(document.getElementById('assess-long').value) || 3,
+            difficulty: document.getElementById('assess-difficulty').value,
+            assessment_type: 'end_of_unit',
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await res.json();
+        btn.disabled = false;
+        if (data.error) { resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + data.error + '</span>'; return; }
+        const a = data.assessment;
+        const qCount = (a.sections||[]).reduce((sum,s) => sum + (s.questions||[]).length, 0);
+        resultEl.innerHTML = `
+          <div class="result-card">
+            <div class="result-title">Assessment generated — ${qCount} questions · ${a.totalMarks} marks · ${a.estimatedTime}</div>
+            <div class="result-actions">
+              <a href="/api/assessments/${a.id}/export/student-paper" class="btn-preview">Download Student Paper</a>
+              <a href="/api/assessments/${a.id}/export/mark-scheme" class="btn-open-folder">Download Mark Scheme</a>
+            </div>
+          </div>
+        `;
+      } catch(e) { btn.disabled = false; resultEl.innerHTML = '<span style="color:#ff3b30;">Error: ' + e.message + '</span>'; }
+    }
+
+    // Assessment / Question Bank (now in Curriculum Hub)
+
+    async function loadAssessmentsList() {
+      const res = await fetch('/api/assessments');
+      const data = await res.json();
+      const assessments = data.assessments || [];
+      const el = document.getElementById('assessment-list');
+      if (assessments.length === 0) {
+        el.innerHTML = '<p style="color:#86868b; font-size:13px;">No assessments generated yet. Use the Assessment tab in a lesson detail panel.</p>';
+        return;
+      }
+      el.innerHTML = assessments.map(a => `
+        <div class="scheme-card">
+          <div class="scheme-title">${a.title}</div>
+          <div class="scheme-meta">
+            ${a.question_count} questions · ${a.totalMarks} marks · ${a.estimatedTime || ''}
+            <div style="margin-top:6px;">
+              <a href="/api/assessments/${a.id}/export/student-paper" class="btn btn-primary btn-sm">Student Paper</a>
+              <a href="/api/assessments/${a.id}/export/mark-scheme" class="btn btn-secondary btn-sm">Mark Scheme</a>
+              <button class="btn btn-danger btn-sm" onclick="deleteAssessment('${a.id}')">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function deleteAssessment(id) {
+      if (!confirm('Delete this assessment?')) return;
+      await fetch('/api/assessments/' + id, { method: 'DELETE' });
+      showToast('Assessment deleted');
+      loadAssessmentsList();
+    }
+
+    // Close modals on overlay click
+    ['tier-modal','curriculum-hub-modal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', (e) => {
+        if (e.target.id === id) el.classList.remove('open');
+      });
+    });
+
     // Initial load
     fetchLessons();
     fetchProgress();
     checkConfig();
+    loadTier();
   </script>
 </body>
 </html>

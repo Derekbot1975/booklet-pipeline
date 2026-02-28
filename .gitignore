@@ -30,3 +30,16 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Personalise Me data
+data/feedback/
+data/students/
+
+# Prompt Sheet 12-17 data
+data/reference-docs/
+data/schemes/
+data/presentations/
+data/assessments/
+data/question-bank/
+data/progression-maps/
+data/app_config.json

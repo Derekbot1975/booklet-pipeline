@@ -10,6 +10,7 @@ Supports multiple courses via scheme-of-work upload.
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from datetime import datetime
@@ -1001,7 +1002,7 @@ def api_cancel_batch():
 
 
 # ========================================================================
-# Reprocess existing booklets — re-sanitise markdown + rebuild docx/pdf
+# Rebuild all booklets — re-sanitise markdown + rebuild docx/pdf
 # ========================================================================
 
 @app.route("/api/reprocess-all", methods=["POST"])
@@ -1149,6 +1150,1122 @@ def api_env_write():
 
 
 # ========================================================================
+# Feedback Engine API
+# ========================================================================
+
+@app.route("/api/feedback/<course_id>/<int:year>/<int:lesson_num>", methods=["GET"])
+def api_get_feedback(course_id, year, lesson_num):
+    """Return feedback history for a lesson."""
+    from feedback_engine import load_feedback_history
+    history = load_feedback_history(course_id, year, lesson_num)
+    return jsonify({"history": history})
+
+
+@app.route("/api/feedback/<course_id>/<int:year>/<int:lesson_num>", methods=["POST"])
+def api_apply_feedback(course_id, year, lesson_num):
+    """Apply teacher feedback to an existing booklet."""
+    from feedback_engine import apply_feedback
+    from generator import check_existing_booklet
+
+    data = get_data(course_id)
+    lesson = None
+    for l in data["all_lessons"]:
+        if l["year"] == year and l["lesson_number"] == lesson_num:
+            lesson = l
+            break
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+
+    existing = check_existing_booklet(lesson)
+    if not existing["exists"]:
+        return jsonify({
+            "error": "No booklet exists for this lesson yet. Generate it first."
+        }), 404
+
+    body = request.get_json() or {}
+    feedback_text = body.get("feedback_text", "").strip()
+    if not feedback_text:
+        return jsonify({"error": "feedback_text is required"}), 400
+
+    model = body.get("model", "claude-sonnet-4-5-20250929")
+
+    try:
+        result = apply_feedback(
+            md_path=existing["docx_path"].replace(".docx", ".md"),
+            feedback_text=feedback_text,
+            lesson=lesson,
+            course_id=course_id,
+            model=model,
+        )
+        return jsonify({"success": True, **result})
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logger.error(f"Feedback apply failed for Y{year}_L{lesson_num:03d}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ========================================================================
+# SEND Student Profiles API
+# ========================================================================
+
+@app.route("/api/students", methods=["GET"])
+def api_list_students():
+    import students
+    return jsonify({"students": students.list_students()})
+
+
+@app.route("/api/students", methods=["POST"])
+def api_save_student():
+    import students
+    body = request.get_json() or {}
+    try:
+        saved = students.save_student(body)
+        return jsonify({"saved": True, "student": saved})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/students/<student_id>", methods=["GET"])
+def api_get_student(student_id):
+    import students
+    s = students.get_student(student_id)
+    if not s:
+        return jsonify({"error": "Student not found"}), 404
+    return jsonify(s)
+
+
+@app.route("/api/students/<student_id>", methods=["PUT"])
+def api_update_student(student_id):
+    import students
+    body = request.get_json() or {}
+    body["id"] = student_id
+    try:
+        saved = students.save_student(body)
+        return jsonify({"saved": True, "student": saved})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/students/<student_id>", methods=["DELETE"])
+def api_delete_student(student_id):
+    import students
+    try:
+        students.delete_student(student_id)
+        return jsonify({"deleted": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+# ========================================================================
+# SEND Personalisation Engine API
+# ========================================================================
+
+@app.route("/api/send-booklet/<course_id>/<int:year>/<int:lesson_num>/<student_id>",
+           methods=["POST"])
+def api_generate_send_booklet(course_id, year, lesson_num, student_id):
+    """Generate a SEND-personalised booklet for a specific student."""
+    from send_engine import generate_send_booklet
+    from generator import check_existing_booklet
+    import students as students_mod
+
+    data = get_data(course_id)
+    lesson = None
+    for l in data["all_lessons"]:
+        if l["year"] == year and l["lesson_number"] == lesson_num:
+            lesson = l
+            break
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+
+    student = students_mod.get_student(student_id)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+
+    existing = check_existing_booklet(lesson)
+    if not existing["exists"]:
+        return jsonify({
+            "error": "No booklet exists for this lesson yet. Generate the standard booklet first."
+        }), 404
+
+    body = request.get_json() or {}
+    model = body.get("model", "claude-sonnet-4-5-20250929")
+    config = courses.get_course(course_id)
+
+    # Find the markdown path from the docx path
+    md_path = existing["docx_path"].replace(".docx", ".md")
+
+    try:
+        result = generate_send_booklet(
+            original_md_path=md_path,
+            student=student,
+            lesson=lesson,
+            course_config=config,
+            model=model,
+        )
+        return jsonify({"success": True, **result})
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(
+            f"SEND booklet failed for Y{year}_L{lesson_num:03d} "
+            f"student {student_id}: {e}"
+        )
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/send-booklets/<course_id>/<int:year>/<int:lesson_num>",
+           methods=["GET"])
+def api_list_send_booklets(course_id, year, lesson_num):
+    """List all SEND-personalised booklets for a lesson."""
+    from generator import check_existing_booklet, OUTPUT_DIR
+    import re as _re
+
+    data = get_data(course_id)
+    lesson = None
+    for l in data["all_lessons"]:
+        if l["year"] == year and l["lesson_number"] == lesson_num:
+            lesson = l
+            break
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+
+    existing = check_existing_booklet(lesson)
+    if not existing["exists"]:
+        return jsonify({"booklets": []})
+
+    docx_path = Path(existing["docx_path"])
+    parent = docx_path.parent
+    stem = docx_path.stem
+
+    # Find SEND variants: "{stem} - SEND - {Name}.docx"
+    booklets = []
+    for f in sorted(parent.glob(f"{stem} - SEND - *.docx")):
+        m = _re.search(r" - SEND - (.+)\.docx$", f.name)
+        student_name_raw = m.group(1).replace("_", " ") if m else f.stem
+        booklets.append({
+            "filename": f.name,
+            "student_name": student_name_raw,
+            "path": str(f),
+            "pdf_exists": f.with_suffix(".pdf").exists(),
+        })
+
+    return jsonify({"booklets": booklets})
+
+
+# ========================================================================
+# Tiered Access API (Prompt Sheet 12)
+# ========================================================================
+
+@app.route("/api/tier")
+def api_get_tier():
+    from access_tiers import get_tier_info
+    return jsonify(get_tier_info())
+
+
+@app.route("/api/tier", methods=["PUT"])
+def api_set_tier():
+    from access_tiers import set_tier
+    body = request.get_json() or {}
+    tier = body.get("tier")
+    if not tier:
+        return jsonify({"error": "tier is required"}), 400
+    try:
+        new_tier = set_tier(tier)
+        return jsonify({"tier": new_tier})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# ========================================================================
+# Reference Document Library API (Prompt Sheet 12)
+# ========================================================================
+
+@app.route("/api/reference-docs")
+def api_list_reference_docs():
+    from access_tiers import requires_tier
+    import reference_library as reflib
+    category = request.args.get("category")
+    subject = request.args.get("subject")
+    key_stage = request.args.get("key_stage")
+    docs = reflib.list_documents(category=category, subject=subject, key_stage=key_stage)
+    return jsonify({"documents": docs})
+
+
+@app.route("/api/reference-docs/<doc_id>")
+def api_get_reference_doc(doc_id):
+    import reference_library as reflib
+    doc = reflib.get_document(doc_id)
+    if not doc:
+        return jsonify({"error": "Document not found"}), 404
+    return jsonify(doc)
+
+
+@app.route("/api/reference-docs/upload", methods=["POST"])
+def api_upload_reference_doc():
+    from access_tiers import get_tier, TIER_HIERARCHY
+    if TIER_HIERARCHY.get(get_tier(), 0) < TIER_HIERARCHY["all_custom"]:
+        return jsonify({"error": "upgrade_required", "message": "Upload requires All Custom access."}), 403
+
+    import reference_library as reflib
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    category = request.form.get("category", "expert_input")
+    title = request.form.get("title", file.filename)
+    subject = request.form.get("subject") or None
+    key_stage = request.form.get("key_stage") or None
+    exam_board = request.form.get("exam_board") or None
+    description = request.form.get("description") or None
+    doc_id = request.form.get("doc_id") or None  # for replacement
+
+    # Save uploaded file temporarily
+    safe_name = file.filename.replace(" ", "_")
+    tmp_path = UPLOADS_DIR / safe_name
+    file.save(str(tmp_path))
+
+    try:
+        doc = reflib.save_document(
+            file_path=str(tmp_path),
+            category=category,
+            title=title,
+            subject=subject,
+            key_stage=key_stage,
+            exam_board=exam_board,
+            description=description,
+            doc_id=doc_id,
+        )
+        return jsonify({"saved": True, "document": doc})
+    except (ValueError, FileNotFoundError) as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/reference-docs/<doc_id>", methods=["PUT"])
+def api_update_reference_doc(doc_id):
+    import reference_library as reflib
+    body = request.get_json() or {}
+    try:
+        doc = reflib.update_document(doc_id, **body)
+        return jsonify({"updated": True, "document": doc})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/reference-docs/<doc_id>", methods=["DELETE"])
+def api_delete_reference_doc(doc_id):
+    import reference_library as reflib
+    try:
+        reflib.delete_document(doc_id)
+        return jsonify({"deleted": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@app.route("/api/reference-docs/<doc_id>/reparse", methods=["POST"])
+def api_reparse_reference_doc(doc_id):
+    import reference_library as reflib
+    try:
+        result = reflib.reparse_document(doc_id)
+        return jsonify(result)
+    except (ValueError, FileNotFoundError) as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/reference-docs/context")
+def api_reference_context():
+    import reference_library as reflib
+    subject = request.args.get("subject")
+    key_stage = request.args.get("key_stage")
+    exam_board = request.args.get("exam_board")
+    context = reflib.get_reference_context(subject=subject, key_stage=key_stage, exam_board=exam_board)
+    return jsonify({"context": context, "length": len(context)})
+
+
+# ========================================================================
+# Scheme of Work Engine API (Prompt Sheet 13)
+# ========================================================================
+
+@app.route("/api/schemes")
+def api_list_schemes():
+    from sow_engine import list_schemes
+    subject = request.args.get("subject")
+    key_stage = request.args.get("key_stage")
+    schemes = list_schemes()
+    # Optional filtering
+    if subject:
+        schemes = [s for s in schemes if s["subject"].lower() == subject.lower()]
+    if key_stage:
+        schemes = [s for s in schemes if s["key_stage"].lower() == key_stage.lower()]
+    return jsonify({"schemes": schemes})
+
+
+@app.route("/api/schemes/<scheme_id>")
+def api_get_scheme(scheme_id):
+    from sow_engine import get_scheme
+    scheme = get_scheme(scheme_id)
+    if not scheme:
+        return jsonify({"error": "Scheme not found"}), 404
+    return jsonify(scheme)
+
+
+@app.route("/api/schemes/<scheme_id>", methods=["PUT"])
+def api_update_scheme(scheme_id):
+    from sow_engine import get_scheme, save_scheme
+    scheme = get_scheme(scheme_id)
+    if not scheme:
+        return jsonify({"error": "Scheme not found"}), 404
+    body = request.get_json() or {}
+    scheme.update(body)
+    scheme["id"] = scheme_id
+    saved = save_scheme(scheme)
+    return jsonify({"saved": True, "scheme": saved})
+
+
+@app.route("/api/schemes/<scheme_id>", methods=["DELETE"])
+def api_delete_scheme(scheme_id):
+    from sow_engine import delete_scheme
+    delete_scheme(scheme_id)
+    return jsonify({"deleted": True})
+
+
+@app.route("/api/schemes/import", methods=["POST"])
+def api_import_scheme():
+    from access_tiers import get_tier, TIER_HIERARCHY
+    if TIER_HIERARCHY.get(get_tier(), 0) < TIER_HIERARCHY["all_custom"]:
+        return jsonify({"error": "upgrade_required", "message": "Scheme import requires All Custom access."}), 403
+    from sow_engine import import_from_course
+    body = request.get_json() or {}
+    course_id = body.get("course_id", _active_course_id)
+    config = courses.get_course(course_id)
+    if not config:
+        return jsonify({"error": "No course loaded. Please select a course first."}), 404
+    try:
+        data = get_data(course_id)
+        if not data or not data.get("all_lessons"):
+            return jsonify({"error": "No lesson data found for this course. Check the spreadsheet has been parsed correctly."}), 400
+        scheme = import_from_course(config, data)
+        scheme_path = str(Path(__file__).parent / "data" / "schemes" / f"{scheme['id']}.json")
+        return jsonify({"saved": True, "scheme": scheme, "file_path": scheme_path})
+    except Exception as e:
+        logger.error(f"Scheme import failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schemes/upload", methods=["POST"])
+def api_upload_scheme():
+    """Upload a scheme file (xlsx, csv) and parse it into a scheme."""
+    from sow_engine import import_from_file
+    import tempfile
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    f = request.files["file"]
+    if not f.filename:
+        return jsonify({"error": "No file selected"}), 400
+
+    ext = Path(f.filename).suffix.lower()
+    if ext not in (".xlsx", ".xls", ".csv"):
+        return jsonify({"error": f"Unsupported file type: {ext}. Upload .xlsx, .xls, or .csv"}), 400
+
+    # Save to temp file
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+    f.save(tmp.name)
+    tmp.close()
+
+    try:
+        scheme = import_from_file(
+            file_path=tmp.name,
+            subject=request.form.get("subject", ""),
+            key_stage=request.form.get("key_stage", ""),
+            year_group=request.form.get("year_group", ""),
+            exam_board=request.form.get("exam_board", ""),
+        )
+        scheme_path = str(Path(__file__).parent / "data" / "schemes" / f"{scheme['id']}.json")
+        return jsonify({"saved": True, "scheme": scheme, "file_path": scheme_path})
+    except Exception as e:
+        logger.error(f"Scheme file upload failed: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        os.unlink(tmp.name)
+
+
+@app.route("/api/schemes/<scheme_id>/save-to-drive", methods=["POST"])
+def api_scheme_save_to_drive(scheme_id):
+    """Export a scheme as Excel and upload to Google Drive."""
+    from sow_engine import get_scheme, export_to_excel
+    import tempfile
+
+    scheme = get_scheme(scheme_id)
+    if not scheme:
+        return jsonify({"error": "Scheme not found"}), 404
+
+    try:
+        # Generate Excel file
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+        tmp.close()
+        export_to_excel(scheme_id, output_path=tmp.name)
+
+        # Upload to Google Drive as Google Sheets
+        from gdrive import upload_as_google_native
+        safe_title = re.sub(r"[^\w\s-]", "", scheme.get("title", "Scheme")).strip()
+        result = upload_as_google_native(
+            local_path=tmp.name,
+            name=f"{safe_title} - Scheme of Work",
+            target_mime="application/vnd.google-apps.spreadsheet",
+        )
+        os.unlink(tmp.name)
+        return jsonify({"saved": True, "file_id": result["file_id"], "web_link": result["web_link"]})
+    except Exception as e:
+        logger.error(f"Scheme save to Drive failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schemes/generate", methods=["POST"])
+def api_generate_scheme():
+    from access_tiers import get_tier, TIER_HIERARCHY
+    if TIER_HIERARCHY.get(get_tier(), 0) < TIER_HIERARCHY["all_custom"]:
+        return jsonify({"error": "upgrade_required", "message": "Scheme generation requires All Custom access."}), 403
+    from sow_engine import generate_scheme
+    import reference_library as reflib
+
+    body = request.get_json() or {}
+    subject = body.get("subject")
+    key_stage = body.get("key_stage")
+    scope = body.get("scope", "single_year")
+    year_group = body.get("year_group")
+    if not subject or not key_stage:
+        return jsonify({"error": "subject and key_stage are required"}), 400
+
+    # Determine which year groups to generate for
+    KS_YEAR_GROUPS = {
+        "KS1": [1, 2],
+        "KS2": [3, 4, 5, 6],
+        "KS3": [7, 8, 9],
+        "KS4": [10, 11],
+        "KS5": [12, 13],
+    }
+    if scope == "whole_ks":
+        year_groups = KS_YEAR_GROUPS.get(key_stage, [])
+        if not year_groups:
+            return jsonify({"error": f"Unknown key stage: {key_stage}"}), 400
+    else:
+        if not year_group:
+            return jsonify({"error": "year_group is required for single year generation"}), 400
+        year_groups = [int(year_group)]
+
+    ref_context = reflib.get_reference_context(
+        subject=subject, key_stage=key_stage,
+        exam_board=body.get("exam_board"),
+    )
+
+    try:
+        schemes = []
+        for yg in year_groups:
+            scheme = generate_scheme(
+                subject=subject,
+                key_stage=key_stage,
+                year_group=yg,
+                lessons_per_week=int(body.get("lessons_per_week", 3)),
+                weeks_per_term=int(body.get("weeks_per_term", 6)),
+                exam_board=body.get("exam_board"),
+                priorities=body.get("priorities"),
+                exclusions=body.get("exclusions"),
+                reference_context=ref_context,
+                model=body.get("model", "claude-sonnet-4-5-20250929"),
+            )
+            schemes.append(scheme)
+        if len(schemes) == 1:
+            return jsonify({"saved": True, "scheme": schemes[0]})
+        else:
+            return jsonify({
+                "saved": True,
+                "scheme": schemes[0],
+                "all_schemes": schemes,
+                "message": f"Generated {len(schemes)} schemes for {key_stage} (Years {', '.join(str(y) for y in year_groups)})"
+            })
+    except Exception as e:
+        logger.error(f"Scheme generation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schemes/<scheme_id>/review", methods=["POST"])
+def api_review_scheme(scheme_id):
+    from sow_engine import review_scheme, get_scheme
+    import reference_library as reflib
+
+    scheme = get_scheme(scheme_id)
+    if not scheme:
+        return jsonify({"error": "Scheme not found"}), 404
+
+    body = request.get_json() or {}
+    ref_context = reflib.get_reference_context(
+        subject=scheme.get("subject"),
+        key_stage=scheme.get("keyStage"),
+        exam_board=scheme.get("examBoard"),
+    )
+
+    try:
+        review = review_scheme(
+            scheme_id,
+            reference_context=ref_context,
+            model=body.get("model", "claude-sonnet-4-5-20250929"),
+        )
+        return jsonify({"review": review})
+    except Exception as e:
+        logger.error(f"Scheme review failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schemes/<scheme_id>/review", methods=["GET"])
+def api_get_review(scheme_id):
+    from sow_engine import get_review
+    review = get_review(scheme_id)
+    if not review:
+        return jsonify({"error": "No review found"}), 404
+    return jsonify({"review": review})
+
+
+@app.route("/api/schemes/<scheme_id>/apply-suggestion", methods=["POST"])
+def api_apply_suggestion(scheme_id):
+    from sow_engine import apply_suggestion
+    import reference_library as reflib
+    from sow_engine import get_scheme
+
+    scheme = get_scheme(scheme_id)
+    if not scheme:
+        return jsonify({"error": "Scheme not found"}), 404
+
+    body = request.get_json() or {}
+    suggestion = body.get("suggestion")
+    if not suggestion:
+        return jsonify({"error": "suggestion is required"}), 400
+
+    ref_context = reflib.get_reference_context(
+        subject=scheme.get("subject"),
+        key_stage=scheme.get("keyStage"),
+    )
+
+    try:
+        updated = apply_suggestion(scheme_id, suggestion, reference_context=ref_context)
+        return jsonify({"saved": True, "scheme": updated})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schemes/<scheme_id>/export-excel", methods=["GET", "POST"])
+def api_export_scheme_excel(scheme_id):
+    from sow_engine import export_to_excel
+    try:
+        path = export_to_excel(scheme_id)
+        return send_file(path, as_attachment=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+# ========================================================================
+# Progression Map API (Prompt Sheet 14)
+# ========================================================================
+
+@app.route("/api/progression-maps/generate", methods=["POST"])
+def api_generate_progression_map():
+    from progression_map import generate_progression_map
+    from sow_engine import get_scheme
+    import reference_library as reflib
+
+    body = request.get_json() or {}
+    scheme_id = body.get("scheme_id")
+    if not scheme_id:
+        return jsonify({"error": "scheme_id is required"}), 400
+
+    scheme = get_scheme(scheme_id)
+    if not scheme:
+        return jsonify({"error": "Scheme not found"}), 404
+
+    ref_context = reflib.get_reference_context(
+        subject=scheme.get("subject"),
+        key_stage=scheme.get("keyStage"),
+    )
+
+    try:
+        map_data = generate_progression_map(
+            scheme, reference_context=ref_context,
+            model=body.get("model", "claude-sonnet-4-5-20250929"),
+        )
+        return jsonify({"saved": True, "map": map_data})
+    except Exception as e:
+        logger.error(f"Progression map generation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/progression-maps")
+def api_list_progression_maps():
+    from progression_map import list_maps
+    subject = request.args.get("subject")
+    return jsonify({"maps": list_maps(subject=subject)})
+
+
+@app.route("/api/progression-maps/<map_id>")
+def api_get_progression_map(map_id):
+    from progression_map import get_map
+    m = get_map(map_id)
+    if not m:
+        return jsonify({"error": "Map not found"}), 404
+    return jsonify(m)
+
+
+@app.route("/api/progression-maps/<map_id>", methods=["PUT"])
+def api_update_progression_map(map_id):
+    from progression_map import update_map
+    body = request.get_json() or {}
+    try:
+        m = update_map(map_id, body)
+        return jsonify({"updated": True, "map": m})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/progression-maps/<map_id>", methods=["DELETE"])
+def api_delete_progression_map(map_id):
+    from progression_map import delete_map
+    delete_map(map_id)
+    return jsonify({"deleted": True})
+
+
+@app.route("/api/progression-maps/<map_id>/svg")
+def api_progression_map_svg(map_id):
+    from progression_map import get_map, render_svg
+    m = get_map(map_id)
+    if not m:
+        return jsonify({"error": "Map not found"}), 404
+    svg = render_svg(m)
+    return Response(svg, mimetype="image/svg+xml")
+
+
+@app.route("/api/progression-maps/<map_id>/download/<fmt>")
+def api_progression_map_download(map_id, fmt):
+    """Download a progression map as SVG or PDF."""
+    from progression_map import get_map
+    m = get_map(map_id)
+    if not m:
+        return jsonify({"error": "Map not found"}), 404
+
+    exported = m.get("exported_files", {})
+    if fmt == "svg":
+        path = exported.get("svg")
+        if not path or not Path(path).exists():
+            return jsonify({"error": "SVG file not found. Try regenerating the map."}), 404
+        title = m.get("title", "Progression Map")
+        return send_file(path, as_attachment=True, download_name=f"{title}.svg")
+    elif fmt == "pdf":
+        path = exported.get("pdf")
+        if not path or not Path(path).exists():
+            return jsonify({"error": "PDF not available. LibreOffice may not be installed."}), 404
+        title = m.get("title", "Progression Map")
+        return send_file(path, as_attachment=True, download_name=f"{title}.pdf")
+    else:
+        return jsonify({"error": f"Unknown format: {fmt}"}), 400
+
+
+@app.route("/api/progression-maps/<map_id>/save-to-drive", methods=["POST"])
+def api_progression_map_save_to_drive(map_id):
+    """Upload a progression map SVG (or PDF) to Google Drive."""
+    from progression_map import get_map
+    from gdrive import upload_as_google_native
+
+    m = get_map(map_id)
+    if not m:
+        return jsonify({"error": "Map not found"}), 404
+
+    exported = m.get("exported_files", {})
+    title = m.get("title", "Progression Map")
+
+    config = get_active_course_config()
+    folder_id = (config or {}).get("gdrive_folder_id") or None
+
+    # Prefer PDF for Drive upload, fall back to SVG
+    file_path = exported.get("pdf") or exported.get("svg")
+    if not file_path or not Path(file_path).exists():
+        return jsonify({"error": "No exported file found. Try regenerating the map."}), 404
+
+    ext = Path(file_path).suffix.lower()
+    try:
+        if ext == ".pdf":
+            # Upload PDF directly (no conversion needed)
+            from googleapiclient.http import MediaFileUpload
+            from gdrive import _get_service, MIME_TYPES
+            service = _get_service()
+            metadata = {"name": f"{title}.pdf"}
+            if folder_id:
+                metadata["parents"] = [folder_id]
+            media = MediaFileUpload(file_path, mimetype="application/pdf")
+            result = service.files().create(
+                body=metadata, media_body=media,
+                fields="id, webViewLink",
+            ).execute()
+            return jsonify({
+                "file_id": result["id"],
+                "web_link": result.get("webViewLink", ""),
+            })
+        else:
+            # SVG — upload as raw file
+            from googleapiclient.http import MediaFileUpload
+            from gdrive import _get_service
+            service = _get_service()
+            metadata = {"name": f"{title}.svg"}
+            if folder_id:
+                metadata["parents"] = [folder_id]
+            media = MediaFileUpload(file_path, mimetype="image/svg+xml")
+            result = service.files().create(
+                body=metadata, media_body=media,
+                fields="id, webViewLink",
+            ).execute()
+            return jsonify({
+                "file_id": result["id"],
+                "web_link": result.get("webViewLink", ""),
+            })
+    except Exception as e:
+        logger.error(f"Drive upload failed for progression map {map_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ========================================================================
+# Booklet Types API (Prompt Sheet 15)
+# ========================================================================
+
+@app.route("/api/booklet-types/generate", methods=["POST"])
+def api_generate_typed_booklet():
+    from booklet_types import generate_typed_booklet
+    from generator import check_existing_booklet
+    import reference_library as reflib
+
+    body = request.get_json() or {}
+    year = body.get("year")
+    lesson_num = body.get("lesson_num")
+    booklet_type = body.get("type")
+
+    if not all([year, lesson_num, booklet_type]):
+        return jsonify({"error": "year, lesson_num, and type are required"}), 400
+
+    data = get_data()
+    lesson = _find_lesson(data, int(year), int(lesson_num))
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+
+    config = get_active_course_config()
+
+    # Try to load existing booklet content
+    existing = check_existing_booklet(lesson)
+    existing_content = None
+    if existing["exists"]:
+        md_path = existing["docx_path"].replace(".docx", ".md")
+        md_file = Path(md_path)
+        if md_file.exists():
+            existing_content = md_file.read_text(encoding="utf-8")
+
+    # Get reference context
+    ref_context = reflib.get_reference_context(
+        subject=lesson.get("subject"),
+        key_stage=f"KS{config.get('key_stage', '')}" if config.get("key_stage") else None,
+        exam_board=config.get("exam_board"),
+    )
+
+    # For revision, get all lessons in the same topic/unit
+    unit_lessons = None
+    if booklet_type == "revision":
+        topic = lesson.get("topic")
+        if topic:
+            unit_lessons = [
+                l for l in data["booklet_lessons"]
+                if l.get("topic") == topic and l.get("year") == lesson.get("year")
+            ]
+
+    try:
+        result = generate_typed_booklet(
+            lesson=lesson,
+            booklet_type=booklet_type,
+            course_config=config,
+            existing_booklet_content=existing_content,
+            reference_context=ref_context,
+            unit_lessons=unit_lessons,
+            model=body.get("model", "claude-sonnet-4-5-20250929"),
+        )
+        return jsonify({"success": True, **result})
+    except Exception as e:
+        logger.error(f"Typed booklet generation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/booklet-types/list/<int:year>/<int:lesson_num>")
+def api_list_typed_booklets(year, lesson_num):
+    from booklet_types import list_typed_booklets
+    data = get_data()
+    lesson = _find_lesson(data, year, lesson_num)
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+    booklets = list_typed_booklets(lesson)
+    return jsonify({"booklets": booklets})
+
+
+# ========================================================================
+# Presentation Engine API (Prompt Sheet 16)
+# ========================================================================
+
+@app.route("/api/presentations/generate", methods=["POST"])
+def api_generate_presentation():
+    from presentation_engine import generate_slide_content, render_pptx, save_presentation_data
+    from generator import check_existing_booklet
+    import reference_library as reflib
+
+    body = request.get_json() or {}
+    year = body.get("year")
+    lesson_num = body.get("lesson_num")
+
+    if not all([year, lesson_num]):
+        return jsonify({"error": "year and lesson_num are required"}), 400
+
+    data = get_data()
+    lesson = _find_lesson(data, int(year), int(lesson_num))
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+
+    config = get_active_course_config()
+
+    # Load existing booklet if available
+    existing = check_existing_booklet(lesson)
+    existing_content = None
+    if existing["exists"]:
+        md_path = existing["docx_path"].replace(".docx", ".md")
+        md_file = Path(md_path)
+        if md_file.exists():
+            existing_content = md_file.read_text(encoding="utf-8")
+
+    ref_context = reflib.get_reference_context(
+        subject=lesson.get("subject"),
+        key_stage=f"KS{config.get('key_stage', '')}" if config.get("key_stage") else None,
+    )
+
+    try:
+        slide_result = generate_slide_content(
+            lesson=lesson,
+            reference_context=ref_context,
+            existing_booklet_content=existing_content,
+            include_speaker_notes=body.get("include_speaker_notes", True),
+            include_differentiation=body.get("include_differentiation", True),
+            model=body.get("model", "claude-sonnet-4-5-20250929"),
+        )
+
+        pptx_path = render_pptx(
+            slides=slide_result["slides"],
+            lesson=lesson,
+            style=body.get("style", "clean"),
+        )
+
+        pres_data = save_presentation_data(
+            lesson=lesson,
+            slides=slide_result["slides"],
+            pptx_path=pptx_path,
+            usage=slide_result["usage"],
+            model=slide_result["model"],
+            duration_s=slide_result["duration_s"],
+        )
+
+        return jsonify({"success": True, "presentation": pres_data})
+    except Exception as e:
+        logger.error(f"Presentation generation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/presentations")
+def api_list_presentations():
+    from presentation_engine import list_presentations
+    return jsonify({"presentations": list_presentations()})
+
+
+@app.route("/api/presentations/<pres_id>")
+def api_get_presentation(pres_id):
+    from presentation_engine import get_presentation
+    p = get_presentation(pres_id)
+    if not p:
+        return jsonify({"error": "Presentation not found"}), 404
+    return jsonify(p)
+
+
+@app.route("/api/presentations/<pres_id>/download")
+def api_download_presentation(pres_id):
+    from presentation_engine import get_presentation
+    p = get_presentation(pres_id)
+    if not p:
+        return jsonify({"error": "Presentation not found"}), 404
+    pptx_path = p.get("pptx_path")
+    if not pptx_path or not Path(pptx_path).exists():
+        return jsonify({"error": "File not found"}), 404
+    return send_file(pptx_path, as_attachment=True)
+
+
+@app.route("/api/presentations/gamma", methods=["POST"])
+def api_export_gamma():
+    from presentation_engine import generate_slide_content, export_gamma_format
+    import reference_library as reflib
+
+    body = request.get_json() or {}
+    year = body.get("year")
+    lesson_num = body.get("lesson_num")
+    if not all([year, lesson_num]):
+        return jsonify({"error": "year and lesson_num required"}), 400
+
+    data = get_data()
+    lesson = _find_lesson(data, int(year), int(lesson_num))
+    if not lesson:
+        return jsonify({"error": "Lesson not found"}), 404
+
+    ref_context = reflib.get_reference_context(subject=lesson.get("subject"))
+
+    slide_result = generate_slide_content(lesson=lesson, reference_context=ref_context)
+    gamma_text = export_gamma_format(slide_result["slides"], lesson)
+    return jsonify({"gamma_text": gamma_text, "slide_count": len(slide_result["slides"])})
+
+
+# ========================================================================
+# Assessment Builder API (Prompt Sheet 17)
+# ========================================================================
+
+@app.route("/api/assessments/generate", methods=["POST"])
+def api_generate_assessment():
+    from assessment_engine import generate_assessment
+    import reference_library as reflib
+
+    body = request.get_json() or {}
+    lesson_refs = body.get("lessons", [])  # [{year, lesson_num}, ...]
+
+    if not lesson_refs:
+        return jsonify({"error": "lessons list is required"}), 400
+
+    data = get_data()
+    config = get_active_course_config()
+
+    # Resolve lesson refs to lesson objects
+    lessons = []
+    for ref in lesson_refs:
+        l = _find_lesson(data, int(ref.get("year", 0)), int(ref.get("lesson_num", 0)))
+        if l:
+            lessons.append(l)
+
+    if not lessons:
+        return jsonify({"error": "No matching lessons found"}), 404
+
+    subject = lessons[0].get("subject", "Unknown")
+    year_group = lessons[0].get("year", 0)
+
+    ref_context = reflib.get_reference_context(
+        subject=subject,
+        key_stage=f"KS{config.get('key_stage', '')}" if config.get("key_stage") else None,
+        exam_board=config.get("exam_board"),
+    )
+
+    try:
+        assessment = generate_assessment(
+            lessons=lessons,
+            subject=subject,
+            year_group=year_group,
+            config=body.get("config", {}),
+            num_mc=int(body.get("num_mc", 10)),
+            num_short=int(body.get("num_short", 8)),
+            num_long=int(body.get("num_long", 3)),
+            difficulty=body.get("difficulty", "medium"),
+            assessment_type=body.get("assessment_type", "custom"),
+            reference_context=ref_context,
+            model=body.get("model", "claude-sonnet-4-5-20250929"),
+        )
+        return jsonify({"success": True, "assessment": assessment})
+    except Exception as e:
+        logger.error(f"Assessment generation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/assessments")
+def api_list_assessments():
+    from assessment_engine import list_assessments
+    subject = request.args.get("subject")
+    return jsonify({"assessments": list_assessments(subject=subject)})
+
+
+@app.route("/api/assessments/<assessment_id>")
+def api_get_assessment(assessment_id):
+    from assessment_engine import get_assessment
+    a = get_assessment(assessment_id)
+    if not a:
+        return jsonify({"error": "Assessment not found"}), 404
+    return jsonify(a)
+
+
+@app.route("/api/assessments/<assessment_id>", methods=["PUT"])
+def api_update_assessment(assessment_id):
+    from assessment_engine import update_assessment
+    body = request.get_json() or {}
+    try:
+        a = update_assessment(assessment_id, body)
+        return jsonify({"updated": True, "assessment": a})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/assessments/<assessment_id>", methods=["DELETE"])
+def api_delete_assessment(assessment_id):
+    from assessment_engine import delete_assessment
+    delete_assessment(assessment_id)
+    return jsonify({"deleted": True})
+
+
+@app.route("/api/assessments/<assessment_id>/export/student-paper")
+def api_export_student_paper(assessment_id):
+    from assessment_engine import export_student_paper
+    try:
+        path = export_student_paper(assessment_id)
+        return send_file(path, as_attachment=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+@app.route("/api/assessments/<assessment_id>/export/mark-scheme")
+def api_export_mark_scheme(assessment_id):
+    from assessment_engine import export_mark_scheme
+    try:
+        path = export_mark_scheme(assessment_id)
+        return send_file(path, as_attachment=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+# Question bank
+@app.route("/api/question-bank")
+def api_question_bank():
+    from assessment_engine import list_question_bank
+    return jsonify({"questions": list_question_bank(
+        subject=request.args.get("subject"),
+        topic=request.args.get("topic"),
+        question_type=request.args.get("type"),
+        difficulty=request.args.get("difficulty"),
+        starred_only=request.args.get("starred") == "true",
+    )})
+
+
+@app.route("/api/question-bank/<question_id>/star", methods=["PUT"])
+def api_star_question(question_id):
+    from assessment_engine import star_question
+    body = request.get_json() or {}
+    starred = body.get("starred", True)
+    try:
+        q = star_question(question_id, starred)
+        return jsonify({"starred": q["is_starred"]})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+
+
+# ========================================================================
 # Helpers
 # ========================================================================
 
@@ -1158,6 +2275,50 @@ def _find_lesson(data, year, lesson_num):
         if l["year"] == year and l["lesson_number"] == lesson_num:
             return l
     return None
+
+
+# ─── File preview & open folder ─────────────────────────────────────────
+import subprocess as _subprocess
+
+@app.route("/api/preview-file")
+def api_preview_file():
+    """Serve a generated file for preview in the browser."""
+    file_path = request.args.get("path", "")
+    if not file_path:
+        return "No path", 400
+    p = Path(file_path)
+    if not p.exists():
+        return f"File not found: {file_path}", 404
+    # Only serve files under output/ or data/ for safety
+    try:
+        p.resolve().relative_to(Path(__file__).parent.resolve())
+    except ValueError:
+        return "Access denied", 403
+    return send_file(str(p.resolve()), as_attachment=False)
+
+
+@app.route("/api/open-folder", methods=["POST"])
+def api_open_folder():
+    """Open the containing folder of a file in Finder/Explorer."""
+    body = request.get_json() or {}
+    file_path = body.get("path", "")
+    if not file_path:
+        return jsonify({"error": "No path"}), 400
+    p = Path(file_path)
+    folder = p.parent if p.is_file() else p
+    if not folder.exists():
+        return jsonify({"error": "Folder not found"}), 404
+    try:
+        import platform
+        if platform.system() == "Darwin":
+            _subprocess.Popen(["open", str(folder)])
+        elif platform.system() == "Windows":
+            _subprocess.Popen(["explorer", str(folder)])
+        else:
+            _subprocess.Popen(["xdg-open", str(folder)])
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
