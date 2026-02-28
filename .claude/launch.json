@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "booklet-pipeline",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/derek/booklet-pipeline && source venv/bin/activate && python app.py"],
+      "port": 5050
+    }
+  ]
+}

@@ -1027,8 +1027,8 @@
                 <input type="text" id="ref-description" placeholder="Brief description (optional)">
               </div>
               <div class="form-group">
-                <label>File (DOCX, PDF, XLSX, TXT) *</label>
-                <input type="file" id="ref-file" accept=".docx,.pdf,.xlsx,.xls,.txt,.md" required>
+                <label>File (DOCX, PDF, XLSX, TXT, PPTX, Pages) *</label>
+                <input type="file" id="ref-file" accept=".docx,.pdf,.xlsx,.xls,.txt,.md,.pptx,.pages" required>
               </div>
             </form>
             <div class="actions">
@@ -3271,8 +3271,9 @@
         }
         html += `</div>`;
       }
-      html += `<div class="actions" style="margin-top:16px;">
+      html += `<div class="actions" style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="showRefUploadForm()">+ Upload Document</button>
+        <button class="btn btn-secondary" id="update-thinkers-btn" onclick="updateThinkers()">🔄 Update Thinkers</button>
       </div>`;
       el.innerHTML = html;
     }
@@ -3311,6 +3312,49 @@
       await fetch('/api/reference-docs/' + docId, { method: 'DELETE' });
       showToast('Document deleted');
       loadRefLibrary();
+    }
+
+    async function updateThinkers() {
+      const btn = document.getElementById('update-thinkers-btn');
+      if (!confirm('Regenerate all key thinker files using AI? This may take several minutes.')) return;
+      btn.disabled = true;
+      btn.textContent = '⏳ Regenerating…';
+      showToast('Thinker regeneration started — this runs in the background');
+
+      try {
+        const res = await fetch('/api/reference-docs/update-thinkers', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.error) { showToast('Error: ' + data.error); btn.disabled = false; btn.textContent = '🔄 Update Thinkers'; return; }
+
+        // Poll for completion
+        const taskId = data.task_id;
+        const poll = setInterval(async () => {
+          try {
+            const r = await fetch('/api/reference-docs/update-thinkers/' + taskId);
+            const status = await r.json();
+            if (status.status === 'done') {
+              clearInterval(poll);
+              btn.disabled = false;
+              btn.textContent = '🔄 Update Thinkers';
+              showToast(`✅ Regenerated ${status.generated} thinker files across ${status.subjects.length} subjects`);
+              loadRefLibrary();
+            } else if (status.status === 'error') {
+              clearInterval(poll);
+              btn.disabled = false;
+              btn.textContent = '🔄 Update Thinkers';
+              showToast('Error: ' + status.error);
+            }
+          } catch(e) { /* keep polling */ }
+        }, 5000);
+      } catch(e) {
+        btn.disabled = false;
+        btn.textContent = '🔄 Update Thinkers';
+        showToast('Error: ' + e.message);
+      }
     }
 
     // ===================================================================

@@ -40,7 +40,7 @@ CATEGORIES = {
     "great_lesson_code": "Great Lesson / Great Booklet Codification",
 }
 
-VALID_EXTENSIONS = {".docx", ".pdf", ".xlsx", ".xls", ".txt", ".md"}
+VALID_EXTENSIONS = {".docx", ".pdf", ".xlsx", ".xls", ".txt", ".md", ".pptx", ".pages"}
 
 
 def _doc_dir(doc_id):
@@ -326,6 +326,10 @@ def _parse_document(file_path, ext):
         return _parse_pdf(file_path)
     elif ext in (".xlsx", ".xls"):
         return _parse_excel(file_path)
+    elif ext == ".pptx":
+        return _parse_pptx(file_path)
+    elif ext == ".pages":
+        return _parse_pages(file_path)
     else:
         raise ValueError(f"Cannot parse file type: {ext}")
 
@@ -407,6 +411,76 @@ def _parse_pdf(file_path):
         pass
 
     return "[PDF parsing requires PyPDF2 or pdfplumber. Install with: pip install PyPDF2]"
+
+
+def _parse_pptx(file_path):
+    """Extract text from a PowerPoint .pptx file."""
+    try:
+        from pptx import Presentation
+        prs = Presentation(file_path)
+        parts = []
+        for i, slide in enumerate(prs.slides, 1):
+            slide_texts = []
+            for shape in slide.shapes:
+                if shape.has_text_frame:
+                    for para in shape.text_frame.paragraphs:
+                        text = para.text.strip()
+                        if text:
+                            slide_texts.append(text)
+                if shape.has_table:
+                    for row in shape.table.rows:
+                        cells = [cell.text.strip() for cell in row.cells]
+                        if any(cells):
+                            slide_texts.append(" | ".join(cells))
+            if slide_texts:
+                parts.append(f"## Slide {i}\n" + "\n".join(slide_texts))
+        return "\n\n".join(parts)
+    except ImportError:
+        logger.error("python-pptx not installed. Run: pip install python-pptx")
+        return "[PPTX parse error: python-pptx not installed]"
+    except Exception as e:
+        logger.error(f"PPTX parse failed: {e}")
+        return f"[PPTX parse error: {e}]"
+
+
+def _parse_pages(file_path):
+    """Extract text from an Apple Pages file (which is a zip containing IWA/XML)."""
+    import zipfile
+    try:
+        with zipfile.ZipFile(file_path, 'r') as z:
+            # Pages files are zips. Try to find readable text content.
+            # The main content is in Index/Document.iwa (protobuf) — hard to parse.
+            # Fallback: look for any preview PDF inside the zip.
+            names = z.namelist()
+
+            # Try preview PDF first
+            pdf_names = [n for n in names if n.lower().endswith('.pdf')]
+            if pdf_names:
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                    tmp.write(z.read(pdf_names[0]))
+                    tmp_path = tmp.name
+                result = _parse_pdf(tmp_path)
+                os.unlink(tmp_path)
+                return result
+
+            # Try plain text extraction from buildVersionHistory
+            text_parts = []
+            for name in names:
+                if name.endswith('.txt') or name.endswith('.xml'):
+                    try:
+                        content = z.read(name).decode('utf-8', errors='ignore')
+                        if content.strip():
+                            text_parts.append(content.strip())
+                    except Exception:
+                        pass
+            if text_parts:
+                return "\n\n".join(text_parts)
+
+            return "[Pages file: could not extract text content. Consider exporting as PDF or DOCX.]"
+    except Exception as e:
+        logger.error(f"Pages parse failed: {e}")
+        return f"[Pages parse error: {e}]"
 
 
 def _parse_excel(file_path):

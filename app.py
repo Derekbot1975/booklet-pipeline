@@ -1485,6 +1485,49 @@ def api_reference_context():
     return jsonify({"context": context, "length": len(context)})
 
 
+@app.route("/api/reference-docs/update-thinkers", methods=["POST"])
+def api_update_thinkers():
+    """Regenerate key thinker expert-input files via AI and re-import into library."""
+    import threading
+    from generate_expert_input import regenerate_thinkers, SUBJECTS
+
+    body = request.get_json() or {}
+    subject_key = body.get("subject")  # optional — None means all subjects
+
+    if subject_key and subject_key not in SUBJECTS:
+        return jsonify({"error": f"Unknown subject: {subject_key}"}), 400
+
+    # Run in background thread so the request returns immediately
+    task_id = f"thinkers-{int(time.time())}"
+
+    def _run():
+        try:
+            result = regenerate_thinkers(subject_key)
+            # Store result so frontend can poll
+            _thinker_tasks[task_id] = {"status": "done", **result}
+        except Exception as e:
+            _thinker_tasks[task_id] = {"status": "error", "error": str(e)}
+
+    _thinker_tasks[task_id] = {"status": "running"}
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+
+    return jsonify({"task_id": task_id, "status": "running"})
+
+
+# In-memory task tracker for thinker regeneration
+_thinker_tasks = {}
+
+
+@app.route("/api/reference-docs/update-thinkers/<task_id>")
+def api_update_thinkers_status(task_id):
+    """Poll the status of a thinker regeneration task."""
+    task = _thinker_tasks.get(task_id)
+    if not task:
+        return jsonify({"error": "Task not found"}), 404
+    return jsonify(task)
+
+
 # ========================================================================
 # Scheme of Work Engine API (Prompt Sheet 13)
 # ========================================================================

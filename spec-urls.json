@@ -1,0 +1,1347 @@
+{
+  "_metadata": {
+    "description": "UK Exam Board Specification PDF URLs and DfE National Curriculum documents",
+    "generated": "2026-02-28",
+    "notes": [
+      "URLs marked with VERIFIED were confirmed returning HTTP 200 with correct content-type",
+      "URLs marked with NEEDS_VERIFICATION could not be confirmed via automated scraping (JS-rendered pages)",
+      "Pearson/Edexcel relative paths should be prefixed with https://qualifications.pearson.com",
+      "OCR relative paths should be prefixed with https://www.ocr.org.uk",
+      "WJEC/Eduqas specs could not be scraped due to heavy JS rendering - landing pages provided instead"
+    ]
+  },
+
+  "national_curriculum": {
+    "framework": {
+      "name": "National Curriculum Framework KS1-4",
+      "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-framework-for-key-stages-1-to-4",
+      "pdf": "https://assets.publishing.service.gov.uk/media/5a7db9e9e5274a5eaea65f58/Master_final_national_curriculum_28_Nov.pdf"
+    },
+    "eyfs": {
+      "name": "Early Years Foundation Stage Statutory Framework",
+      "publication_page": "https://www.gov.uk/government/publications/early-years-foundation-stage-framework--2",
+      "pdfs": {
+        "childminders": "https://assets.publishing.service.gov.uk/media/6874e14383d39f474eb7d373/Early_years_foundation_stage_statutory_framework_for_childminders_.pdf",
+        "group_and_school": "https://assets.publishing.service.gov.uk/media/68c024cb8c6d992f23edd79c/Early_years_foundation_stage_statutory_framework_-_for_group_and_school-based_providers.pdf.pdf"
+      }
+    },
+    "subjects": {
+      "history": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-history-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7c2917e5274a1f5cc762cf/PRIMARY_national_curriculum_-_History.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c66d740f0b626628abcdd/SECONDARY_national_curriculum_-_History.pdf"
+        }
+      },
+      "geography": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-geography-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7c1ecae5274a1f5cc75e97/PRIMARY_national_curriculum_-_Geography.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7b8699ed915d131105fd16/SECONDARY_national_curriculum_-_Geography.pdf"
+        }
+      },
+      "english": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-english-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7de93840f0b62305b7f8ee/PRIMARY_national_curriculum_-_English_220714.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7b8761ed915d4147620f6b/SECONDARY_national_curriculum_-_English2.pdf",
+          "ks4": "https://assets.publishing.service.gov.uk/media/5a7585a1ed915d731495a9dd/KS4_English_PoS_FINAL_170714.pdf",
+          "glossary": "https://assets.publishing.service.gov.uk/media/5a7c8e4ded915d48c24108e2/English_Glossary.pdf",
+          "appendix_1_spelling": "https://assets.publishing.service.gov.uk/media/5a7ccc06ed915d63cc65ce61/English_Appendix_1_-_Spelling.pdf",
+          "appendix_2_grammar": "https://assets.publishing.service.gov.uk/media/5a7d913aed915d3fb959486f/English_Appendix_2_-_Vocabulary_grammar_and_punctuation.pdf"
+        }
+      },
+      "mathematics": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7da548ed915d2ac884cb07/PRIMARY_national_curriculum_-_Mathematics_220714.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c1408e5274a1f5cc75a68/SECONDARY_national_curriculum_-_Mathematics.pdf",
+          "ks4": "https://assets.publishing.service.gov.uk/media/5a7dc9dced915d2ac884d8ef/KS4_maths_PoS_FINAL_170714.pdf",
+          "appendix_1": "https://assets.publishing.service.gov.uk/media/5a7c5b95e5274a7ee501a6e5/Mathematics_Appendix_1.pdf"
+        }
+      },
+      "science": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-science-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a806ebd40f0b62305b8b1fa/PRIMARY_national_curriculum_-_Science.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7d563de5274a2af0ae2ffa/SECONDARY_national_curriculum_-_Science_220714.pdf",
+          "ks4": "https://assets.publishing.service.gov.uk/media/5a7efc65ed915d74e33f3ac9/Science_KS4_PoS_7_November_2014.pdf"
+        }
+      },
+      "languages": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-languages-progammes-of-study",
+        "pdfs": {
+          "primary_ks2": "https://assets.publishing.service.gov.uk/media/5a7b9246e5274a7318b8f889/PRIMARY_national_curriculum_-_Languages.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c5afae5274a7ee501a69e/SECONDARY_national_curriculum_-_Languages.pdf"
+        }
+      },
+      "computing": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-computing-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7c576be5274a1b00423213/PRIMARY_national_curriculum_-_Computing.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7cb981ed915d682236228d/SECONDARY_national_curriculum_-_Computing.pdf"
+        }
+      },
+      "art_and_design": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-art-and-design-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7ba810ed915d4147621ca0/PRIMARY_national_curriculum_-_Art_and_design.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c4e02ed915d3d0e87b798/SECONDARY_national_curriculum_-_Art_and_design.pdf"
+        }
+      },
+      "music": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-music-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7b7f8c40f0b645ba3c4b8a/PRIMARY_national_curriculum_-_Music.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c869440f0b62aff6c2499/SECONDARY_national_curriculum_-_Music.pdf"
+        }
+      },
+      "physical_education": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-physical-education-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7c4edfed915d3d0e87b801/PRIMARY_national_curriculum_-_Physical_education.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c74e2e5274a5255bcec5f/SECONDARY_national_curriculum_-_Physical_education.pdf"
+        }
+      },
+      "design_and_technology": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-design-and-technology-programmes-of-study",
+        "pdfs": {
+          "primary_ks1_ks2": "https://assets.publishing.service.gov.uk/media/5a7ca43640f0b6629523adc1/PRIMARY_national_curriculum_-_Design_and_technology.pdf",
+          "secondary_ks3": "https://assets.publishing.service.gov.uk/media/5a7c99ebed915d6969f46087/SECONDARY_national_curriculum_-_Design_and_technology.pdf"
+        }
+      },
+      "citizenship": {
+        "publication_page": "https://www.gov.uk/government/publications/national-curriculum-in-england-citizenship-programmes-of-study",
+        "pdfs": {
+          "secondary_ks3_ks4": "https://assets.publishing.service.gov.uk/media/5f324f7ad3bf7f1b1ea28dca/SECONDARY_national_curriculum_-_Citizenship.pdf"
+        }
+      },
+      "religious_education": {
+        "note": "RE is not part of the National Curriculum but is compulsory. Non-statutory guidance provided.",
+        "publication_page": "https://www.gov.uk/government/publications/religious-education-guidance-in-english-schools-non-statutory-guidance-2010",
+        "pdfs": {
+          "guidance": "https://assets.publishing.service.gov.uk/media/5a7adb3ce5274a34770e7953/DCSF-00114-2010.pdf"
+        }
+      }
+    }
+  },
+
+  "exam_boards": {
+    "aqa": {
+      "board_name": "AQA",
+      "base_url": "https://www.aqa.org.uk",
+      "filestore_base": "https://filestore.aqa.org.uk/resources",
+      "subjects": {
+        "history": {
+          "gcse": {
+            "code": "8145",
+            "name": "History",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/history/specifications/AQA-8145-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7041/7042",
+            "name": "History",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/history/specifications/AQA-7041-7042-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "geography": {
+          "gcse": {
+            "code": "8035",
+            "name": "Geography",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/geography/specifications/AQA-8035-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7037",
+            "name": "Geography",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/geography/specifications/AQA-7037-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "english_language": {
+          "gcse": {
+            "code": "8700",
+            "name": "English Language",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/english/specifications/AQA-8700-SP-2015.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7711/7712",
+            "name": "English Language",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/english/specifications/AQA-7711-7712-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "english_literature": {
+          "gcse": {
+            "code": "8702",
+            "name": "English Literature",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/english/specifications/AQA-8702-SP-2015.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7716/7717",
+            "name": "English Literature",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/english/specifications/AQA-7716-7717-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "mathematics": {
+          "gcse": {
+            "code": "8300",
+            "name": "Mathematics",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/mathematics/specifications/AQA-8300-SP-2015.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7357",
+            "name": "Mathematics",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/mathematics/specifications/AQA-7357-SP-2017.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "biology": {
+          "gcse": {
+            "code": "8461",
+            "name": "Biology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/biology/specifications/AQA-8461-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7401/7402",
+            "name": "Biology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/biology/specifications/AQA-7401-7402-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "chemistry": {
+          "gcse": {
+            "code": "8462",
+            "name": "Chemistry",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/chemistry/specifications/AQA-8462-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7404/7405",
+            "name": "Chemistry",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/chemistry/specifications/AQA-7404-7405-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "physics": {
+          "gcse": {
+            "code": "8463",
+            "name": "Physics",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/physics/specifications/AQA-8463-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7407/7408",
+            "name": "Physics",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/physics/specifications/AQA-7407-7408-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "combined_science": {
+          "gcse": {
+            "code": "8464",
+            "name": "Combined Science: Trilogy",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/science/specifications/AQA-8464-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "french": {
+          "gcse": {
+            "code": "8658",
+            "name": "French",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/french/specifications/AQA-8658-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7652",
+            "name": "French",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/french/specifications/AQA-7652-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "spanish": {
+          "gcse": {
+            "code": "8698",
+            "name": "Spanish",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/spanish/specifications/AQA-8698-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7692",
+            "name": "Spanish",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/spanish/specifications/AQA-7692-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "german": {
+          "gcse": {
+            "code": "8668",
+            "name": "German",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/german/specifications/AQA-8668-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7662",
+            "name": "German",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/german/specifications/AQA-7662-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "religious_studies": {
+          "gcse": {
+            "code": "8062",
+            "name": "Religious Studies A",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/rs/specifications/AQA-8062-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7062",
+            "name": "Religious Studies",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/rs/specifications/AQA-7062-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "computer_science": {
+          "gcse": {
+            "code": "8525",
+            "name": "Computer Science",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/computing/specifications/AQA-8525-SP-2020.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7516/7517",
+            "name": "Computer Science",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/computing/specifications/AQA-7516-7517-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "art_and_design": {
+          "gcse": {
+            "code": "8201-8206",
+            "name": "Art and Design (includes Fine Art, Textile Design, 3D Design, Photography, Graphic Communication)",
+            "subject_page": "https://www.aqa.org.uk/subjects/art-and-design/gcse/art-and-design-8201-8206",
+            "spec_pdf": "NEEDS_VERIFICATION - AQA Art GCSE spec PDF could not be located via automated scraping. Check subject page.",
+            "status": "NEEDS_VERIFICATION",
+            "endorsements": {
+              "8201": "Art and Design",
+              "8202": "Fine Art",
+              "8203": "Graphic Communication",
+              "8204": "Photography",
+              "8205": "Textile Design",
+              "8206": "Three-Dimensional Design"
+            }
+          },
+          "a_level": {
+            "code": "7201-7206",
+            "name": "Art and Design (includes Fine Art, Textile Design, 3D Design, Photography, Graphic Communication)",
+            "subject_page": "https://www.aqa.org.uk/subjects/art-and-design/as-and-a-level/art-and-design-7201-7206",
+            "spec_pdf": "NEEDS_VERIFICATION - AQA Art A Level spec PDF could not be located via automated scraping. Check subject page.",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "music": {
+          "gcse": {
+            "code": "8271",
+            "name": "Music",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/music/specifications/AQA-8271-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7272",
+            "name": "Music",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/music/specifications/AQA-7272-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "physical_education": {
+          "gcse": {
+            "code": "8582",
+            "name": "Physical Education",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/pe/specifications/AQA-8582-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7582",
+            "name": "Physical Education",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/pe/specifications/AQA-7582-SP-2016.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "drama": {
+          "gcse": {
+            "code": "8261",
+            "name": "Drama",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/drama/specifications/AQA-8261-SP-2016.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "note": "AQA does not offer A Level Drama - they offer A Level Drama and Theatre (see drama_and_theatre)"
+          }
+        },
+        "design_and_technology": {
+          "gcse": {
+            "code": "8552",
+            "name": "Design and Technology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/design-and-technology/specifications/AQA-8552-SP-2017.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "note": "AQA offers Design and Technology: Product Design at A Level",
+            "code": "7552",
+            "name": "Design and Technology: Product Design",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "subject_page": "https://www.aqa.org.uk/subjects/design-and-technology/as-and-a-level/design-and-technology-product-design-7552",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "business": {
+          "gcse": {
+            "code": "8132",
+            "name": "Business",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/business/specifications/AQA-8132-SP-2017.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7131/7132",
+            "name": "Business",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/business/specifications/AQA-7131-7132-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "sociology": {
+          "gcse": {
+            "code": "8192",
+            "name": "Sociology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/sociology/specifications/AQA-8192-SP-2017.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7191/7192",
+            "name": "Sociology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/sociology/specifications/AQA-7191-7192-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "psychology": {
+          "gcse": {
+            "code": "8182",
+            "name": "Psychology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/psychology/specifications/AQA-8182-SP-2017.PDF",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "7181/7182",
+            "name": "Psychology",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/psychology/specifications/AQA-7181-7182-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "economics": {
+          "a_level": {
+            "code": "7135/7136",
+            "name": "Economics",
+            "spec_pdf": "https://filestore.aqa.org.uk/resources/economics/specifications/AQA-7135-7136-SP-2015.PDF",
+            "status": "VERIFIED"
+          }
+        },
+        "statistics": {
+          "note": "AQA does not offer GCSE Statistics"
+        },
+        "information_technology": {
+          "note": "AQA does not offer a standalone IT qualification at GCSE or A Level"
+        },
+        "textiles": {
+          "note": "Covered under Art and Design endorsement 8205 (GCSE Textile Design)"
+        },
+        "photography": {
+          "note": "Covered under Art and Design endorsement 8204 (GCSE Photography)"
+        },
+        "three_d_design": {
+          "note": "Covered under Art and Design endorsement 8206 (GCSE Three-Dimensional Design)"
+        }
+      }
+    },
+
+    "edexcel": {
+      "board_name": "Pearson Edexcel",
+      "base_url": "https://qualifications.pearson.com",
+      "pdf_base": "https://qualifications.pearson.com",
+      "subjects": {
+        "history": {
+          "gcse": {
+            "code": "1HI0",
+            "name": "History",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/History/2016/specification-and-sample-assessments/gcse-9-1-history-specification.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9HI0",
+            "name": "History",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/History/2015/Specification%20and%20sample%20assessments/9781446914366-gce-2015-a-hist.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "geography": {
+          "gcse_a": {
+            "code": "1GA0",
+            "name": "Geography A",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Geography-A/2016/specification-and-sample-assessments/gcse-2016-l12-geography-a-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "gcse_b": {
+            "code": "1GB0",
+            "name": "Geography B",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Geography-B/2016/specification-and-sample-assessments/gcse-2016-l12-geography-b-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9GE0",
+            "name": "Geography",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Geography/2016/specification-and-sample-assessments/pearson-edexcel-a-level-geography-issue-6.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "english_language": {
+          "gcse": {
+            "code": "1EN0",
+            "name": "English Language",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/English%20Language/2015/specification-and-sample-assesment/gcse-2015-englang-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9EN0",
+            "name": "English Language",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/English%20Language/2015/Specification%20and%20sample%20assessment/AS-EnglishLanguage-Spec.pdf",
+            "note": "This appears to be the AS spec but may be the combined AS/A Level document",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "english_literature": {
+          "gcse": {
+            "code": "1ET0",
+            "name": "English Literature",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/English%20Literature/2015/specification-and-sample-assesment/9781446914359_GCSE_2015_L12_Englit.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9ET0",
+            "name": "English Literature",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/English%20Literature/2015/Specification%20and%20sample%20assessments/gce2015-a-level-eng-lit-spec.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "mathematics": {
+          "gcse": {
+            "code": "1MA1",
+            "name": "Mathematics",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/mathematics/2015/specification-and-sample-assesment/gcse-maths-2015-specification.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9MA0",
+            "name": "Mathematics",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Mathematics/2017/specification-and-sample-assesment/a-level-l3-mathematics-specification-issue4.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level_further": {
+            "code": "9FM0",
+            "name": "Further Mathematics",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Mathematics/2017/specification-and-sample-assesment/a-level-l3-further-mathematics-specification.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "biology": {
+          "gcse": {
+            "code": "1BI0",
+            "name": "Biology",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Science/2016/Specification/gcse-biology-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9BI0",
+            "name": "Biology A (Salters-Nuffield)",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/biology-a/2015/specification-and-sample-assessment-materials/9781446930885-gce2015-a-bioa-spec.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "chemistry": {
+          "gcse": {
+            "code": "1CH0",
+            "name": "Chemistry",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Science/2016/Specification/gcse-chemistry-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9CH0",
+            "name": "Chemistry",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Chemistry/2015/Specification%20and%20sample%20assessments/a-level-chemistry-2015-specification.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "physics": {
+          "gcse": {
+            "code": "1PH0",
+            "name": "Physics",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Science/2016/Specification/gcse-physics-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9PH0",
+            "name": "Physics",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Physics/2015/Specification%20and%20sample%20assessments/pearsonedexcel-alevel-physics-spec.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "combined_science": {
+          "gcse": {
+            "code": "1SC0",
+            "name": "Combined Science",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Science/2016/Specification/gcse-combinedscience-spec.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "french": {
+          "gcse": {
+            "code": "1FR1",
+            "name": "French (2024 spec)",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/French/2024/specification-and-sample-assessments/gq000023-gcse-french-specification-2024-issue-2.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9FR0",
+            "name": "French",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/French/2016/Specification%20and%20sample%20assessments/Specification_GCE_A_level_L3_in_French.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "spanish": {
+          "gcse": {
+            "code": "1SP1",
+            "name": "Spanish (2024 spec)",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Spanish/2024/specification-and-sample-assessments/gq000027-gcse-spanish-specification-2024-issue-2.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9SP0",
+            "name": "Spanish",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Spanish/2016/Specification%20and%20sample%20assessments/Specification_GCE_A_level_L3_in_Spanish.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "german": {
+          "gcse": {
+            "code": "1GN1",
+            "name": "German (2024 spec)",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/German/2024/specification-and-sample-assessments/gq000025-gcse-german-specification-2024-issue-2.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9GN0",
+            "name": "German",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/German/2016/Specification%20and%20sample%20assessments/Specification_GCE_A_level_L3_in_German.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "religious_studies": {
+          "gcse": {
+            "code": "1RA0",
+            "name": "Religious Studies A",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Religious%20Studies/2016/Specification%20and%20sample%20assessments/specification-gcse-l1-l2-religious-studies-a-june-2016-draft-4.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9RS0",
+            "name": "Religious Studies",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Religious%20Studies/2016/Specification%20and%20sample%20assessments/Specification_GCE_A_Level_in_Religious_Studies.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "computer_science": {
+          "gcse": {
+            "code": "1CP2",
+            "name": "Computer Science",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Computer%20Science/2020/specification-and-sample-assessments/GCSE_L1_L2_Computer_Science_2020_Specification.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9CP0",
+            "name": "Computer Science",
+            "subject_page": "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/computer-science-2015.html",
+            "spec_pdf": "NEEDS_VERIFICATION - page did not return spec PDF link via curl",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "art_and_design": {
+          "gcse": {
+            "code": "1AD0",
+            "name": "Art and Design",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Art%20and%20Design/2016/specification-and-sample-assessments/specification-gcse-art-design-2016-spec.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9AD0",
+            "name": "Art and Design",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Art%20and%20Design/2015/specification-and-sample-assessment-materials/gce-a-level-art-and-design-specification-issue-4.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "music": {
+          "gcse": {
+            "code": "1MU0",
+            "name": "Music",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Music/2016/specification/Pearson_Edexcel_GCSE_9_to_1_in_Music_Specification_issue4.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9MU0",
+            "name": "Music",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Music/2016/Specification%20and%20sample%20assessments/Pearson_Edexcel_Level_3_Advanced_GCE_in_Music_9MU0_specification_issue7.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "physical_education": {
+          "gcse": {
+            "code": "1PE0",
+            "name": "Physical Education",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Physical%20Education/2016/Specification%20and%20sample%20assessments/GCSE-physical-education-2016-specification.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9PE0",
+            "name": "Physical Education",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Physical%20Education/2016/Specification%20and%20sample%20assessments/a-level-pe-specification.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "drama": {
+          "gcse": {
+            "code": "1DR0",
+            "name": "Drama",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Drama/2016/Specification%20and%20sample%20assessments/gcse2016-l12-drama.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "note": "Edexcel offers Drama and Theatre at A Level",
+            "code": "9DR0",
+            "name": "Drama and Theatre",
+            "subject_page": "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/drama-and-theatre-2016.html",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "design_and_technology": {
+          "gcse": {
+            "code": "1DT0",
+            "name": "Design and Technology",
+            "subject_page": "https://qualifications.pearson.com/en/qualifications/edexcel-gcses/design-and-technology-2017.html",
+            "spec_pdf": "NEEDS_VERIFICATION - page did not return spec PDF link via curl (JS-rendered)",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "business": {
+          "gcse": {
+            "code": "1BS0",
+            "name": "Business",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Business/2017/specification-and-sample-assessments/gcse-business-spec-2017.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "9BS0",
+            "name": "Business",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Business%20Studies/2015/specification-and-sample-assessment-materials/9781446914694-gce2015-a-bus-web.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "statistics": {
+          "gcse": {
+            "code": "1ST0",
+            "name": "Statistics",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/GCSE/Statistics/2017/specification-and-sample-assessments/gcse-9-1-statistics-specification.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "psychology": {
+          "a_level": {
+            "code": "9PS0",
+            "name": "Psychology",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Psychology/2015/specification-and-sample-assessments/al-specification-psychology.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "sociology": {
+          "a_level": {
+            "subject_page": "https://qualifications.pearson.com/en/qualifications/edexcel-a-levels/sociology-2015.html",
+            "spec_pdf": "NEEDS_VERIFICATION - page did not return spec PDF link via curl",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "economics": {
+          "a_level": {
+            "code": "9EC0",
+            "name": "Economics A",
+            "spec_pdf": "https://qualifications.pearson.com/content/dam/pdf/A%20Level/Economics/2015/specification-and-sample-assessment-materials/A_Level_Econ_A_Spec.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "information_technology": {
+          "note": "Edexcel offers BTEC IT qualifications but not a traditional GCSE/A Level IT spec"
+        }
+      }
+    },
+
+    "ocr": {
+      "board_name": "OCR",
+      "base_url": "https://www.ocr.org.uk",
+      "subjects": {
+        "history": {
+          "gcse": {
+            "code": "J411",
+            "name": "History B (Schools History Project)",
+            "spec_pdf": "https://www.ocr.org.uk/Images/207164-specification-accredited-gcse-history-b-.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H505",
+            "name": "History A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/170128-specification-accredited-a-level-gce-history-a-h505.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "geography": {
+          "gcse": {
+            "code": "J384",
+            "name": "Geography B (Geography for Enquiring Minds)",
+            "spec_pdf": "https://www.ocr.org.uk/Images/737448-specification-accredited-gcse-geography-b-j384.pdf",
+            "note": "Updated spec. Older version: /Images/207307-specification-taught-before-september-2025-with-final-assessments-summer-2026.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H481",
+            "name": "Geography",
+            "spec_pdf": "https://www.ocr.org.uk/Images/223012-specification-accredited-a-level-gce-geography-h481.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "english_language": {
+          "gcse": {
+            "code": "J351",
+            "name": "English Language",
+            "spec_pdf": "https://www.ocr.org.uk/Images/168996-specification-accredited-gcse-english-language-j351.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H470",
+            "name": "English Language",
+            "spec_pdf": "https://www.ocr.org.uk/Images/171195-specification-accredited-a-level-gce-english-language-h470.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "english_literature": {
+          "gcse": {
+            "code": "J352",
+            "name": "English Literature",
+            "spec_pdf": "https://www.ocr.org.uk/Images/168995-specification-accredited-gcse-english-literature-j352.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H472",
+            "name": "English Literature",
+            "spec_pdf": "https://www.ocr.org.uk/Images/171200-specification-accredited-a-level-gce-english-literature-h472.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "mathematics": {
+          "gcse": {
+            "code": "J560",
+            "name": "Mathematics",
+            "spec_pdf": "https://www.ocr.org.uk/Images/168982-specification-gcse-mathematics.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H240",
+            "name": "Mathematics A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/308723-specification-accredited-a-level-gce-mathematics-a-h240.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "biology": {
+          "gcse": {
+            "code": "J247",
+            "name": "Gateway Science Suite - Biology A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/234594-specification-accredited-gcse-gateway-science-suite-biology-a-j247.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H420",
+            "name": "Biology A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/687834-download-a-level-specification.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "chemistry": {
+          "gcse": {
+            "code": "J248",
+            "name": "Gateway Science Suite - Chemistry A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/234598-specification-accredited-gcse-gateway-science-suite-chemistry-a-j248.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H432",
+            "name": "Chemistry A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/171720-specification-accredited-a-level-gce-chemistry-a-h432.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "physics": {
+          "gcse": {
+            "code": "J249",
+            "name": "Gateway Science Suite - Physics A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/234600-specification-accredited-gcse-gateway-science-suite-physics-a-j249.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H556",
+            "name": "Physics A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/171726-specification-accredited-a-level-gce-physics-a-h556.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "combined_science": {
+          "gcse": {
+            "code": "J250",
+            "name": "Gateway Science Suite - Combined Science A",
+            "spec_pdf": "https://www.ocr.org.uk/Images/234596-specification-accredited-gcse-gateway-science-suite-combined-science-a-j250.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "religious_studies": {
+          "gcse": {
+            "code": "J625",
+            "name": "Religious Studies",
+            "subject_page": "https://www.ocr.org.uk/qualifications/gcse/religious-studies-j625-from-2016/",
+            "spec_pdf": "NEEDS_VERIFICATION - spec PDF link loaded via JavaScript, could not scrape",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "code": "H573",
+            "name": "Religious Studies",
+            "spec_pdf": "https://www.ocr.org.uk/Images/242913-specification-accredited-a-level-gce-religious-studies-h573.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "computer_science": {
+          "gcse": {
+            "code": "J277",
+            "name": "Computer Science",
+            "spec_pdf": "https://www.ocr.org.uk/Images/558027-specification-gcse-computer-science-j277.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H446",
+            "name": "Computer Science",
+            "spec_pdf": "https://www.ocr.org.uk/Images/170844-specification-accredited-a-level-gce-computer-science-h446.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "art_and_design": {
+          "gcse": {
+            "code": "J171-J176",
+            "name": "Art and Design",
+            "subject_page": "https://www.ocr.org.uk/qualifications/gcse/art-and-design-j171-j176-from-2016/",
+            "spec_pdf": "NEEDS_VERIFICATION - spec PDF link loaded via JavaScript",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "music": {
+          "gcse": {
+            "code": "J536",
+            "name": "Music",
+            "spec_pdf": "https://www.ocr.org.uk/Images/219378-specification-accredited-gcse-music-j536.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H543",
+            "name": "Music",
+            "spec_pdf": "https://www.ocr.org.uk/Images/219397-specification-accredited-a-level-gce-music-h543.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "physical_education": {
+          "gcse": {
+            "code": "J587",
+            "name": "Physical Education",
+            "spec_pdf": "https://www.ocr.org.uk/Images/234822-specification-accredited-gcse-physical-education-j587.pdf",
+            "status": "VERIFIED"
+          },
+          "a_level": {
+            "code": "H555",
+            "name": "Physical Education",
+            "subject_page": "https://www.ocr.org.uk/qualifications/as-and-a-level/pe-h155-h555-from-2016/",
+            "spec_pdf": "NEEDS_VERIFICATION - spec PDF link loaded via JavaScript",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "drama": {
+          "gcse": {
+            "code": "J316",
+            "name": "Drama",
+            "spec_pdf": "https://www.ocr.org.uk/Images/242630-specification-accredited-gcse-drama-j316.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "design_and_technology": {
+          "gcse": {
+            "code": "J310",
+            "name": "Design and Technology",
+            "spec_pdf": "https://www.ocr.org.uk/Images/304658-specification-accredited-gcse-design-and-technology-j310.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "business": {
+          "gcse": {
+            "code": "J204",
+            "name": "Business",
+            "spec_pdf": "https://www.ocr.org.uk/Images/304213-specification-accredited-gcse-business-j204.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "psychology": {
+          "a_level": {
+            "code": "H567",
+            "name": "Psychology",
+            "spec_pdf": "https://www.ocr.org.uk/Images/171732-specification-accredited-a-level-gce-psychology-h567.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "sociology": {
+          "a_level": {
+            "code": "H580",
+            "name": "Sociology",
+            "spec_pdf": "https://www.ocr.org.uk/Images/170212-specification-accredited-a-level-gce-sociology.pdf",
+            "status": "VERIFIED"
+          }
+        },
+        "economics": {
+          "a_level": {
+            "code": "H460",
+            "name": "Economics",
+            "subject_page": "https://www.ocr.org.uk/qualifications/as-and-a-level/economics-h060-h460-from-2015/",
+            "spec_pdf": "NEEDS_VERIFICATION - spec PDF link loaded via JavaScript",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "french": {
+          "note": "OCR does not offer GCSE or A Level French"
+        },
+        "spanish": {
+          "note": "OCR does not offer GCSE or A Level Spanish"
+        },
+        "german": {
+          "note": "OCR does not offer GCSE or A Level German"
+        },
+        "statistics": {
+          "note": "OCR does not offer GCSE Statistics"
+        },
+        "information_technology": {
+          "note": "OCR offers Cambridge Nationals in IT, not a traditional GCSE/A Level",
+          "cambridge_nationals_page": "https://www.ocr.org.uk/qualifications/cambridge-nationals/information-technologies-level-1-2-j836/"
+        }
+      }
+    },
+
+    "wjec_eduqas": {
+      "board_name": "WJEC/Eduqas",
+      "base_url_eduqas": "https://www.eduqas.co.uk",
+      "base_url_wjec": "https://www.wjec.co.uk",
+      "note": "WJEC/Eduqas specification PDFs could not be scraped via curl due to heavy JavaScript rendering. Landing pages are provided - spec PDFs must be downloaded manually from each subject page.",
+      "subjects": {
+        "history": {
+          "gcse": {
+            "name": "History",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/history-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "History",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/history-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "geography": {
+          "gcse": {
+            "name": "Geography",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/geography-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Geography",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/geography-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "english_language": {
+          "gcse": {
+            "name": "English Language",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/english-language-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "English Language",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/english-language-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "english_literature": {
+          "gcse": {
+            "name": "English Literature",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/english-literature-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "English Literature",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/english-literature-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "mathematics": {
+          "gcse": {
+            "name": "Mathematics",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/mathematics-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Mathematics",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/mathematics-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "biology": {
+          "gcse": {
+            "name": "Biology",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/science-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Biology",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/biology-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "chemistry": {
+          "a_level": {
+            "name": "Chemistry",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/chemistry-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "physics": {
+          "a_level": {
+            "name": "Physics",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/physics-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "french": {
+          "gcse": {
+            "name": "French",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/french-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "French",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/french-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "spanish": {
+          "gcse": {
+            "name": "Spanish",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/spanish-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Spanish",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/spanish-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "german": {
+          "gcse": {
+            "name": "German",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/german-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "German",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/german-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "religious_studies": {
+          "gcse": {
+            "name": "Religious Studies",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/religious-studies-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Religious Studies",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/religious-studies-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "computer_science": {
+          "gcse": {
+            "name": "Computer Science",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/computer-science-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Computer Science",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/computer-science-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "art_and_design": {
+          "gcse": {
+            "name": "Art and Design",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/art-and-design-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Art and Design",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/art-and-design-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "music": {
+          "gcse": {
+            "name": "Music",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/music-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Music",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/music-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "physical_education": {
+          "gcse": {
+            "name": "Physical Education",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/physical-education-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Physical Education",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/physical-education-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "drama": {
+          "gcse": {
+            "name": "Drama",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/drama-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Drama and Theatre",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/drama-and-theatre-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "design_and_technology": {
+          "gcse": {
+            "name": "Design and Technology",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/design-and-technology-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "business": {
+          "gcse": {
+            "name": "Business",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/business-gcse/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          },
+          "a_level": {
+            "name": "Business",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/business-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "sociology": {
+          "a_level": {
+            "name": "Sociology",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/sociology-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "psychology": {
+          "a_level": {
+            "name": "Psychology",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/psychology-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "economics": {
+          "a_level": {
+            "name": "Economics",
+            "subject_page": "https://www.eduqas.co.uk/qualifications/economics-as-a-level/",
+            "spec_pdf": "NEEDS_VERIFICATION",
+            "status": "NEEDS_VERIFICATION"
+          }
+        },
+        "statistics": {
+          "note": "WJEC/Eduqas does not offer GCSE Statistics"
+        },
+        "information_technology": {
+          "note": "WJEC offers Level 1/2 and Level 3 Digital Technology qualifications",
+          "subject_page": "https://www.eduqas.co.uk/qualifications/digital-technology-gcse/"
+        }
+      }
+    }
+  }
+}
