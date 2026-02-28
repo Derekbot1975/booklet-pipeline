@@ -27,14 +27,18 @@ logger = logging.getLogger(__name__)
 
 def _extract_json(raw, expect_object=False):
     """Robustly extract JSON from AI response text."""
-    raw = re.sub(r"^```(?:json)?\s*\n?", "", raw)
-    raw = re.sub(r"\n?```\s*$", "", raw)
+    # Strip all markdown code fences (may appear anywhere, not just start/end)
+    raw = re.sub(r"```(?:json)?\s*\n?", "", raw)
+    raw = raw.strip()
     if expect_object:
         start, end = raw.find("{"), raw.rfind("}")
     else:
         start, end = raw.find("["), raw.rfind("]")
     if start != -1 and end != -1 and end > start:
         raw = raw[start:end + 1]
+    elif start != -1:
+        # Truncated output — take from first bracket to end
+        raw = raw[start:]
     raw = re.sub(r",\s*([}\]])", r"\1", raw)
     return raw
 
@@ -157,17 +161,66 @@ RULES:
 OUTPUT: You MUST return valid JSON matching the schema described in the user prompt.
 Do NOT wrap the JSON in markdown code fences. Return raw JSON only."""
 
-SOW_GENERATE_SYSTEM_PROMPT = """You are a UK curriculum design expert who creates detailed, high-quality schemes of work.
+SOW_GENERATE_SYSTEM_PROMPT = """You are a UK curriculum design expert who creates exceptionally detailed, research-informed schemes of work at the quality level expected by MATs (Multi Academy Trusts) and Ofsted deep dives.
 
-RULES:
+You must produce output matching the depth and rigour of the following exemplar structure (adapted for any subject):
+
+MULTI-SHEET STRUCTURE (you generate all data for these sheets):
+
+1. OVERVIEW — Includes:
+   - Lesson structure (e.g. retrieval starter, core teaching, exit ticket timings)
+   - Design rationale with named research/curriculum thinkers relevant to the subject
+   - Content reduction decisions (what was cut and why, citing "less is more" principles)
+   - Sequencing rationale (5-10 numbered principles with researcher citations)
+   - Total lessons, assessment model, consolidation model
+
+2. LESSONS (one set per year group) — Every lesson MUST have ALL of these columns:
+   - Week number (Wk)
+   - Lesson number (L#) — sequential across the whole year
+   - Enquiry / Unit — the overarching enquiry question or unit name
+   - Lesson Title — specific, descriptive title
+   - Specification Content & Learning Objectives — rich prose description (2-4 sentences) of what is taught, NOT just bullet points
+   - Key Vocabulary (Pre-taught) — 4-8 Tier 2 and Tier 3 terms per lesson, comma-separated
+   - Subject-Specific Skill / Concept — the disciplinary or procedural skill being developed (e.g. for History: "Causation", for Science: "Working Scientifically", for Maths: "Reasoning", for English: "Analytical Writing")
+   - Progression Level — explicit progression descriptor (e.g. "L1: Identifying a cause", "L3: Categorised comparison")
+   - Substantive Concepts — the big ideas / concept threads running through the curriculum (e.g. Power, Energy, Number, Genre)
+   - Retrieval Starter Focus — what prior knowledge the low-stakes quiz covers
+
+   SPECIAL LESSON TYPES (distribute appropriately):
+   - Assessment lessons: 2-3 per year, marked "A" in lesson type
+   - DIRT / Feedback lessons: after each assessment, marked "A"
+   - Writing/Skill Instruction lessons: explicit teaching of the skill BEFORE assessment, marked "W"
+   - Consolidation weeks: 1 per half-term (~6 per year), marked "C", for pure retrieval, review, extended practice
+
+3. PROGRESSION LADDERS — Subject-specific skill/concept progression with 5 levels:
+   - Each level: Descriptor, Worked Example from the scheme, Common Misconception, Pupil-Friendly Version
+   - For History: Causation, Change & Continuity, Significance, Evidence, Interpretation, Similarity & Difference
+   - For Science: Working Scientifically, Mathematical Skills, Practical Skills, Scientific Vocabulary
+   - For Maths: Fluency, Reasoning, Problem Solving, Mathematical Communication
+   - For English: Reading Analysis, Writing Composition, Spelling/Punctuation/Grammar, Spoken Language
+   - For other subjects: identify 4-6 subject-appropriate disciplinary skills/concepts
+
+4. CURRICULUM MAP — Substantive concept threads tracked across all year groups showing how big ideas develop
+
+5. VOCABULARY TEACHING — Structured approach to:
+   - Pre-teaching routine (steps, timing)
+   - Cumulative vocabulary in retrieval starters (question types, frequency)
+   - Deliberate re-use plan (key terms, where introduced, where re-used, why)
+
+CRITICAL RULES:
 - Use UK English throughout.
-- Follow the school's scheme of work format exactly if one is provided.
-- Cover ALL required National Curriculum or specification content.
-- Sequence lessons logically with appropriate progression.
-- Include assessment points at regular intervals.
-- Ensure appropriate pacing — not too fast, not too slow.
-- Include key vocabulary for every unit/lesson.
-- Include cross-curricular links where natural.
+- Cover ALL required National Curriculum or specification content for the year group.
+- Sequence lessons logically with research-informed progression (cite researchers by name).
+- Every lesson must have ALL columns filled — no empty fields.
+- Lessons per year must exactly match the total specified.
+- Include retrieval practice in EVERY lesson (cumulative, interleaved across prior units).
+- Include consolidation weeks (1 per half-term).
+- Include explicit writing/skill instruction lessons BEFORE assessments.
+- Vocabulary must be Tier 2 AND Tier 3, pre-taught and cumulatively revisited.
+- Substantive concept threads must be traceable across the whole year.
+- Progression levels must increase across the year (most pupils L2-3 by end of year 7, L3-4 by year 8, L4-5 by year 9 or equivalent for the key stage).
+- Reference the school's quality framework documents if provided.
+- If a specification or NC document is provided, ensure COMPLETE coverage of required content.
 
 OUTPUT: You MUST return valid JSON matching the schema described in the user prompt.
 Do NOT wrap the JSON in markdown code fences. Return raw JSON only."""
@@ -664,6 +717,9 @@ def generate_scheme(subject, key_stage, year_group, lessons_per_week=3,
     """
     Generate a complete scheme of work from scratch using AI.
 
+    Produces exemplar-quality output with multi-sheet structure:
+    overview, lessons, progression ladders, curriculum map, vocabulary guidance.
+
     Returns saved scheme data.
     """
     start = time.time()
@@ -672,15 +728,16 @@ def generate_scheme(subject, key_stage, year_group, lessons_per_week=3,
     total_lessons = lessons_per_week * weeks_per_term * total_terms
     term_names = ["Autumn 1", "Autumn 2", "Spring 1", "Spring 2", "Summer 1", "Summer 2"]
 
-    user_prompt = f"""Generate a complete scheme of work for:
+    user_prompt = f"""Generate a complete, exemplar-quality scheme of work for:
 - Subject: {subject}
 - Key Stage: {key_stage}
 - Year Group: {year_group}
 - Exam Board: {exam_board or "N/A"}
 - Lessons per week: {lessons_per_week}
 - Weeks per term (half-term): {weeks_per_term}
-- Total lessons: {total_lessons}
+- Total lessons across the year: {total_lessons}
 - Terms: {', '.join(term_names)}
+- Weeks per year: {total_lessons // lessons_per_week}
 
 {f"PRIORITISE THESE TOPICS: {priorities}" if priorities else ""}
 {f"EXCLUDE THESE TOPICS: {exclusions}" if exclusions else ""}
@@ -688,39 +745,141 @@ def generate_scheme(subject, key_stage, year_group, lessons_per_week=3,
 REFERENCE MATERIALS:
 {reference_context if reference_context else "(No reference documents uploaded. Generate based on UK National Curriculum / specification best practice.)"}
 
-Return the scheme as JSON with this EXACT structure:
+Return the scheme as JSON with this EXACT structure (all fields mandatory):
 {{
     "subject": "{subject}",
     "keyStage": "{key_stage}",
     "yearGroup": {year_group},
     "examBoard": {json.dumps(exam_board)},
     "totalLessons": {total_lessons},
-    "terms": [
+
+    "overview": {{
+        "title": "{subject} {key_stage} Year {year_group} Scheme of Work",
+        "subtitle": "Year {year_group} — [period/theme description] | {total_lessons} lessons",
+        "lessonStructure": [
+            "Minutes 0-10: CUMULATIVE RETRIEVAL (low-stakes, interleaved across all prior units)",
+            "Minutes 10-50: CORE TEACHING (enquiry-driven, booklet-supported)",
+            "Minutes 50-55: EXIT TICKET / KNOWLEDGE CHECK"
+        ],
+        "designRationale": [
+            "1. [Principle] — cite relevant researcher/thinker by name",
+            "2. [Principle] — cite relevant researcher/thinker by name"
+        ],
+        "contentDecisions": [
+            "[What was included/excluded and why, citing 'less is more' principles]"
+        ],
+        "assessmentModel": "Description of assessment approach (e.g. 2 per year + formative checkpoints)",
+        "consolidationModel": "Description (e.g. 1 consolidation week per half-term)"
+    }},
+
+    "units": [
         {{
             "name": "Autumn 1",
-            "units": [
+            "enquiryTitle": "Unit enquiry question or theme title",
+            "lessons": [
                 {{
-                    "title": "Unit title",
-                    "lessons": [
-                        {{
-                            "number": 1,
-                            "title": "Lesson title",
-                            "objectives": ["Students will be able to..."],
-                            "keyVocabulary": ["term1", "term2"],
-                            "resources": "Required resources",
-                            "assessment": null or "End of unit test",
-                            "crossCurricular": ["Maths - measurement"]
-                        }}
-                    ],
-                    "endOfUnitAssessment": true or false
+                    "week": 1,
+                    "number": 1,
+                    "unit": "Enquiry / unit title",
+                    "title": "Specific lesson title",
+                    "content": "Rich 2-4 sentence description of specification content and learning objectives",
+                    "vocabulary": "term1, term2, term3, term4, term5, term6",
+                    "skill": "Subject-specific skill (e.g. Causation, Working Scientifically, Reasoning)",
+                    "progressionLevel": "L2: Description of what this level looks like",
+                    "concepts": "Big idea thread 1; Big idea thread 2",
+                    "retrievalFocus": "R: What prior knowledge the retrieval quiz covers",
+                    "lessonType": null
                 }}
             ]
         }}
-    ]
+    ],
+
+    "progressionLadders": [
+        {{
+            "skill": "Name of disciplinary skill/concept",
+            "yearExpectations": "Most Year {year_group} pupils → L[x]-[y] by end of year",
+            "levels": [
+                {{
+                    "level": "L1",
+                    "name": "Short name",
+                    "descriptor": "What pupils can do at this level",
+                    "workedExample": "Concrete example from THIS scheme showing L1 work",
+                    "misconception": "What pupils commonly get wrong at this level",
+                    "pupilFriendly": "I can..."
+                }},
+                {{
+                    "level": "L2",
+                    "name": "Short name",
+                    "descriptor": "...",
+                    "workedExample": "...",
+                    "misconception": "...",
+                    "pupilFriendly": "I can..."
+                }},
+                {{
+                    "level": "L3",
+                    "name": "Short name",
+                    "descriptor": "...",
+                    "workedExample": "...",
+                    "misconception": "...",
+                    "pupilFriendly": "I can..."
+                }},
+                {{
+                    "level": "L4",
+                    "name": "Short name",
+                    "descriptor": "...",
+                    "workedExample": "...",
+                    "misconception": "...",
+                    "pupilFriendly": "I can..."
+                }},
+                {{
+                    "level": "L5",
+                    "name": "Short name",
+                    "descriptor": "...",
+                    "workedExample": "...",
+                    "misconception": "...",
+                    "pupilFriendly": "I can..."
+                }}
+            ]
+        }}
+    ],
+
+    "curriculumMap": [
+        {{
+            "thread": "Substantive concept thread name (e.g. Power & Authority, Energy, Genre)",
+            "coverage": "Brief description of how this thread develops across the year"
+        }}
+    ],
+
+    "vocabularyTeaching": {{
+        "preTeachingRoutine": [
+            {{"step": "1. Display", "teacher": "Show 6-8 key terms", "pupil": "Read terms", "time": "30 sec"}},
+            {{"step": "2. Define", "teacher": "Give clear definition", "pupil": "Write in glossary", "time": "2 min"}},
+            {{"step": "3. Contextualise", "teacher": "Use in subject sentence", "pupil": "Hear in context", "time": "1 min"}},
+            {{"step": "4. Practice", "teacher": "Ask for sentence using term", "pupil": "Write and share", "time": "1.5 min"}}
+        ],
+        "retrievalQuestionTypes": [
+            {{"type": "Define", "example": "Define '[term]'. Use it in a sentence about [topic].", "frequency": "Every lesson"}},
+            {{"type": "Match", "example": "Match terms to definitions (mix current + prior units)", "frequency": "Weekly"}},
+            {{"type": "Use in context", "example": "Explain [topic] using these words: [term1], [term2], [term3]", "frequency": "Fortnightly"}},
+            {{"type": "Odd one out", "example": "Which is the odd one out: [term1], [term2], [term3]? Explain.", "frequency": "Monthly"}}
+        ],
+        "deliberateReuse": [
+            {{"term": "Key term", "introduced": "When/where", "reusedIn": "Where it reappears", "why": "Why this matters"}}
+        ]
+    }}
 }}
 
-Ensure EVERY lesson has a number, title, objectives, and key vocabulary.
-Number lessons sequentially across the whole year (1 to {total_lessons})."""
+CRITICAL REQUIREMENTS:
+1. Generate EXACTLY {total_lessons} lessons numbered 1 to {total_lessons}.
+2. Every lesson MUST have ALL fields filled (content, vocabulary, skill, progressionLevel, concepts, retrievalFocus).
+3. The "content" field must be 2-4 rich sentences, NOT just a title or bullet points.
+4. Include 4-6 progression ladders appropriate for {subject}.
+5. Include 5-8 substantive concept threads in the curriculum map.
+6. Distribute lesson types: ~{total_lessons - 12 - 6} core lessons, ~6 assessment+DIRT pairs (A), ~6 consolidation (C), ~4 writing/skill instruction (W).
+7. Lessons labelled "lessonType": "A" for assessment/DIRT, "C" for consolidation, "W" for explicit skill instruction, null for core teaching.
+8. Retrieval starters must reference specific prior content, becoming more interleaved as the year progresses.
+9. Progression levels must increase across the year.
+10. Vocabulary must include both Tier 2 (academic) and Tier 3 (subject-specific) terms."""
 
     system_parts = [
         {
@@ -732,7 +891,7 @@ Number lessons sequentially across the whole year (1 to {total_lessons})."""
 
     response = _create_message(
         model=model,
-        max_tokens=32000,
+        max_tokens=64000,
         system=system_parts,
         messages=[{"role": "user", "content": user_prompt}],
     )
@@ -751,6 +910,32 @@ Number lessons sequentially across the whole year (1 to {total_lessons})."""
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse generated SoW JSON: {e}\nRaw: {raw_text[:800]}")
         raise ValueError(f"AI generated invalid JSON for scheme: {e}")
+
+    # Backward-compat: build legacy "terms" structure from new "units" if present
+    if "units" in scheme_data and "terms" not in scheme_data:
+        scheme_data["terms"] = []
+        for unit_block in scheme_data["units"]:
+            term_entry = {
+                "name": unit_block.get("name", ""),
+                "units": [{
+                    "title": unit_block.get("enquiryTitle", unit_block.get("name", "")),
+                    "lessons": [],
+                    "endOfUnitAssessment": any(
+                        l.get("lessonType") == "A" for l in unit_block.get("lessons", [])
+                    ),
+                }],
+            }
+            for lesson in unit_block.get("lessons", []):
+                term_entry["units"][0]["lessons"].append({
+                    "number": lesson.get("number", 0),
+                    "title": lesson.get("title", ""),
+                    "objectives": [lesson.get("content", "")],
+                    "keyVocabulary": [v.strip() for v in lesson.get("vocabulary", "").split(",") if v.strip()],
+                    "resources": "",
+                    "assessment": lesson.get("lessonType") if lesson.get("lessonType") == "A" else None,
+                    "crossCurricular": [],
+                })
+            scheme_data["terms"].append(term_entry)
 
     # Add metadata
     scheme_data["id"] = str(uuid.uuid4())[:8]
@@ -823,40 +1008,329 @@ Do NOT remove or change anything else — only apply the requested change."""
 # ───────────────────────────────────────────────────────────────────
 
 def export_to_excel(scheme_id, output_path=None):
-    """Export a scheme to Excel in the format the pipeline expects."""
+    """Export a scheme to multi-sheet Excel matching the exemplar format.
+
+    Sheets produced:
+      1. Overview — rationale, lesson structure, design decisions
+      2. Year X Lessons — full lesson table with all columns
+      3. Disciplinary Progression — skill ladders with 5 levels
+      4. Curriculum Map — substantive concept threads
+      5. Vocabulary Teaching — pre-teaching, retrieval, re-use guidance
+      6. Key — colour legend
+    """
     scheme = get_scheme(scheme_id)
     if not scheme:
         raise ValueError(f"Scheme not found: {scheme_id}")
 
     import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"Year {scheme.get('yearGroup', '')} Lessons"
 
-    # Headers matching the pipeline col_map
-    headers = ["Week", "Lesson #", "Subject", "Topic", "Title",
-               "Spec Content", "RP", "Key Vocabulary", "WS/MS", "HT Only"]
-    ws.append(headers)
+    # ── Style definitions ────────────────────────────────────────
+    bold = Font(bold=True)
+    header_font = Font(bold=True, size=12)
+    title_font = Font(bold=True, size=14)
+    wrap = Alignment(wrap_text=True, vertical="top")
+    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+    header_text = Font(bold=True, color="FFFFFF", size=10)
+    assess_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")  # green
+    retrieval_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")  # yellow
+    consol_fill = PatternFill(start_color="D9D2E9", end_color="D9D2E9", fill_type="solid")  # purple
+    writing_fill = PatternFill(start_color="DAEEF3", end_color="DAEEF3", fill_type="solid")  # blue
+    thin_border = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin")
+    )
 
-    lesson_num = 0
-    for term in scheme.get("terms", []):
-        for unit in term.get("units", []):
-            for lesson in unit.get("lessons", []):
-                lesson_num += 1
-                ws.append([
-                    "",  # Week
-                    lesson.get("number", lesson_num),
-                    scheme.get("subject", ""),
-                    unit.get("title", ""),
+    subject = scheme.get("subject", "Subject")
+    year_group = scheme.get("yearGroup", "")
+    key_stage = scheme.get("keyStage", "")
+
+    # ── Sheet 1: Overview ────────────────────────────────────────
+    ws_overview = wb.active
+    ws_overview.title = "Overview"
+    ws_overview.column_dimensions["A"].width = 120
+
+    overview = scheme.get("overview", {})
+    ws_overview.append([overview.get("title", f"{subject} {key_stage} Scheme of Work")])
+    ws_overview["A1"].font = title_font
+    ws_overview.append([overview.get("subtitle", f"Year {year_group} | {scheme.get('totalLessons', '')} lessons")])
+    ws_overview["A2"].font = header_font
+    ws_overview.append([])
+
+    # Lesson structure
+    ws_overview.append(["LESSON STRUCTURE (every lesson):"])
+    ws_overview[f"A{ws_overview.max_row}"].font = bold
+    for item in overview.get("lessonStructure", []):
+        ws_overview.append([item])
+
+    ws_overview.append([])
+    ws_overview.append(["DESIGN RATIONALE:"])
+    ws_overview[f"A{ws_overview.max_row}"].font = bold
+    for item in overview.get("designRationale", []):
+        ws_overview.append([item])
+
+    ws_overview.append([])
+    ws_overview.append(["CONTENT DECISIONS:"])
+    ws_overview[f"A{ws_overview.max_row}"].font = bold
+    for item in overview.get("contentDecisions", []):
+        ws_overview.append([item])
+
+    ws_overview.append([])
+    assessment_model = overview.get("assessmentModel", "")
+    if assessment_model:
+        ws_overview.append([f"ASSESSMENT: {assessment_model}"])
+        ws_overview[f"A{ws_overview.max_row}"].font = bold
+    consol_model = overview.get("consolidationModel", "")
+    if consol_model:
+        ws_overview.append([f"CONSOLIDATION: {consol_model}"])
+        ws_overview[f"A{ws_overview.max_row}"].font = bold
+
+    # Apply wrap to all overview cells
+    for row in ws_overview.iter_rows():
+        for cell in row:
+            cell.alignment = wrap
+
+    # ── Sheet 2: Year X Lessons ──────────────────────────────────
+    ws_lessons = wb.create_sheet(f"Year_{year_group}_Lessons")
+
+    # Title rows
+    ws_lessons.append([f"Year {year_group} Lessons"])
+    ws_lessons["A1"].font = title_font
+    ws_lessons.append([overview.get("subtitle", f"Year {year_group} | {scheme.get('totalLessons', '')} lessons")])
+    ws_lessons["A2"].font = header_font
+
+    # Column headers
+    lesson_headers = [
+        "Wk", "L#", "Enquiry / Unit", "Lesson Title",
+        "Specification Content & Learning Objectives",
+        "Key Vocabulary (Pre-taught)",
+        "Skill / Concept", "Progression Level",
+        "Substantive Concepts", "Retrieval Starter Focus", "Type"
+    ]
+    ws_lessons.append(lesson_headers)
+    for col_idx, _ in enumerate(lesson_headers, 1):
+        cell = ws_lessons.cell(row=3, column=col_idx)
+        cell.font = header_text
+        cell.fill = header_fill
+        cell.alignment = Alignment(wrap_text=True, vertical="center")
+        cell.border = thin_border
+
+    # Column widths
+    col_widths = [5, 5, 30, 30, 60, 30, 18, 30, 25, 25, 5]
+    for i, w in enumerate(col_widths, 1):
+        ws_lessons.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # Write lesson rows — support both new "units" and legacy "terms" structure
+    units_data = scheme.get("units", [])
+    if not units_data:
+        # Fallback to legacy "terms" format
+        for term in scheme.get("terms", []):
+            for unit in term.get("units", []):
+                for lesson in unit.get("lessons", []):
+                    row_data = [
+                        "",
+                        lesson.get("number", ""),
+                        unit.get("title", ""),
+                        lesson.get("title", ""),
+                        "; ".join(lesson.get("objectives", [])),
+                        ", ".join(lesson.get("keyVocabulary", [])),
+                        "", "", "", "", ""
+                    ]
+                    ws_lessons.append(row_data)
+    else:
+        for unit_block in units_data:
+            for lesson in unit_block.get("lessons", []):
+                row_data = [
+                    lesson.get("week", ""),
+                    lesson.get("number", ""),
+                    lesson.get("unit", unit_block.get("enquiryTitle", "")),
                     lesson.get("title", ""),
-                    "; ".join(lesson.get("objectives", [])),
-                    "",  # Required Practical
-                    ", ".join(lesson.get("keyVocabulary", [])),
-                    "",  # WS/MS
-                    "",  # HT Only
-                ])
+                    lesson.get("content", ""),
+                    lesson.get("vocabulary", ""),
+                    lesson.get("skill", ""),
+                    lesson.get("progressionLevel", ""),
+                    lesson.get("concepts", ""),
+                    lesson.get("retrievalFocus", ""),
+                    lesson.get("lessonType", ""),
+                ]
+                row_idx = ws_lessons.max_row + 1
+                ws_lessons.append(row_data)
 
+                # Apply colour based on lesson type
+                lt = lesson.get("lessonType", "")
+                fill = None
+                if lt == "A":
+                    fill = assess_fill
+                elif lt == "C":
+                    fill = consol_fill
+                elif lt == "W":
+                    fill = writing_fill
+
+                if fill:
+                    for col_idx in range(1, len(lesson_headers) + 1):
+                        ws_lessons.cell(row=row_idx, column=col_idx).fill = fill
+
+    # Apply formatting to all lesson data rows
+    for row in ws_lessons.iter_rows(min_row=4):
+        for cell in row:
+            cell.alignment = wrap
+            cell.border = thin_border
+
+    # ── Sheet 3: Disciplinary Progression ────────────────────────
+    ws_prog = wb.create_sheet("Disciplinary Progression")
+    ws_prog.append(["Subject-Specific Skill Progression Ladders"])
+    ws_prog["A1"].font = title_font
+
+    prog_ladders = scheme.get("progressionLadders", [])
+    for ladder in prog_ladders:
+        ws_prog.append([])
+        skill_name = ladder.get("skill", "Skill")
+        ws_prog.append([skill_name, skill_name, skill_name, skill_name, skill_name])
+        ws_prog.cell(row=ws_prog.max_row, column=1).font = Font(bold=True, size=12)
+
+        expectations = ladder.get("yearExpectations", "")
+        if expectations:
+            ws_prog.append([expectations] * 5)
+
+        ws_prog.append(["Level", "Descriptor", "Worked Example from Scheme",
+                        "Common Misconception", "Pupil-Friendly Version"])
+        for col_idx in range(1, 6):
+            cell = ws_prog.cell(row=ws_prog.max_row, column=col_idx)
+            cell.font = bold
+            cell.fill = header_fill
+            cell.font = header_text
+            cell.border = thin_border
+
+        for level in ladder.get("levels", []):
+            ws_prog.append([
+                f"{level.get('level', '')}: {level.get('name', '')}",
+                level.get("descriptor", ""),
+                level.get("workedExample", ""),
+                level.get("misconception", ""),
+                level.get("pupilFriendly", ""),
+            ])
+            for col_idx in range(1, 6):
+                cell = ws_prog.cell(row=ws_prog.max_row, column=col_idx)
+                cell.alignment = wrap
+                cell.border = thin_border
+
+    # Column widths for progression
+    for i, w in enumerate([25, 40, 50, 50, 40], 1):
+        ws_prog.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # ── Sheet 4: Curriculum Map ──────────────────────────────────
+    ws_map = wb.create_sheet("Curriculum Map")
+    ws_map.append([f"Substantive Concept Threads — {subject} Year {year_group}"])
+    ws_map["A1"].font = title_font
+    ws_map.append([])
+
+    ws_map.append(["Concept Thread", "Coverage Across the Year"])
+    for col_idx in range(1, 3):
+        cell = ws_map.cell(row=3, column=col_idx)
+        cell.font = header_text
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    for thread in scheme.get("curriculumMap", []):
+        ws_map.append([
+            thread.get("thread", ""),
+            thread.get("coverage", ""),
+        ])
+        for col_idx in range(1, 3):
+            cell = ws_map.cell(row=ws_map.max_row, column=col_idx)
+            cell.alignment = wrap
+            cell.border = thin_border
+
+    ws_map.column_dimensions["A"].width = 30
+    ws_map.column_dimensions["B"].width = 80
+
+    # ── Sheet 5: Vocabulary Teaching ─────────────────────────────
+    ws_vocab = wb.create_sheet("Vocabulary Teaching")
+    ws_vocab.append(["Vocabulary Teaching Guidance & Routines"])
+    ws_vocab["A1"].font = title_font
+    ws_vocab.append([])
+
+    vocab_data = scheme.get("vocabularyTeaching", {})
+
+    # Pre-teaching routine
+    ws_vocab.append(["1. PRE-TEACHING ROUTINE"])
+    ws_vocab.cell(row=ws_vocab.max_row, column=1).font = bold
+    ws_vocab.append(["Step", "What Teacher Does", "What Pupils Do", "Time"])
+    for col_idx in range(1, 5):
+        cell = ws_vocab.cell(row=ws_vocab.max_row, column=col_idx)
+        cell.font = header_text
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    for step in vocab_data.get("preTeachingRoutine", []):
+        ws_vocab.append([
+            step.get("step", ""),
+            step.get("teacher", ""),
+            step.get("pupil", ""),
+            step.get("time", ""),
+        ])
+
+    ws_vocab.append([])
+    ws_vocab.append(["2. CUMULATIVE VOCABULARY IN RETRIEVAL STARTERS"])
+    ws_vocab.cell(row=ws_vocab.max_row, column=1).font = bold
+    ws_vocab.append(["Question Type", "Example", "When to Use", "Notes"])
+    for col_idx in range(1, 5):
+        cell = ws_vocab.cell(row=ws_vocab.max_row, column=col_idx)
+        cell.font = header_text
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    for qt in vocab_data.get("retrievalQuestionTypes", []):
+        ws_vocab.append([
+            qt.get("type", ""),
+            qt.get("example", ""),
+            qt.get("frequency", ""),
+            qt.get("notes", ""),
+        ])
+
+    ws_vocab.append([])
+    ws_vocab.append(["3. DELIBERATE RE-USE ACROSS UNITS"])
+    ws_vocab.cell(row=ws_vocab.max_row, column=1).font = bold
+    ws_vocab.append(["Term", "Introduced", "Re-used in", "Why This Matters"])
+    for col_idx in range(1, 5):
+        cell = ws_vocab.cell(row=ws_vocab.max_row, column=col_idx)
+        cell.font = header_text
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    for reuse in vocab_data.get("deliberateReuse", []):
+        ws_vocab.append([
+            reuse.get("term", ""),
+            reuse.get("introduced", ""),
+            reuse.get("reusedIn", ""),
+            reuse.get("why", ""),
+        ])
+
+    for w, i in [(30, 1), (50, 2), (50, 3), (40, 4)]:
+        ws_vocab.column_dimensions[openpyxl.utils.get_column_letter(i)].width = w
+
+    # ── Sheet 6: Key ─────────────────────────────────────────────
+    ws_key = wb.create_sheet("Key")
+    ws_key.append(["Colour Key"])
+    ws_key["A1"].font = title_font
+    ws_key.append([])
+
+    key_items = [
+        (assess_fill, "Assessment / DIRT lesson (green)", "A"),
+        (retrieval_fill, "Retrieval / Review lesson (yellow)", ""),
+        (consol_fill, "Consolidation week lesson (purple)", "C"),
+        (writing_fill, "Writing / Skill instruction lesson (blue)", "W"),
+    ]
+    for fill, desc, code in key_items:
+        row_idx = ws_key.max_row + 1
+        ws_key.append(["", desc])
+        ws_key.cell(row=row_idx, column=1).fill = fill
+        ws_key.column_dimensions["A"].width = 5
+        ws_key.column_dimensions["B"].width = 50
+
+    # ── Save ─────────────────────────────────────────────────────
     if not output_path:
         output_dir = Path(__file__).parent / "output" / "schemes"
         output_dir.mkdir(parents=True, exist_ok=True)
