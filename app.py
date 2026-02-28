@@ -2364,5 +2364,134 @@ def api_open_folder():
         return jsonify({"error": str(e)}), 500
 
 
+# ───────────────────────────────────────────────────────────────
+# Feedback / Report System
+# ───────────────────────────────────────────────────────────────
+
+FEEDBACK_DIR = Path(__file__).parent / "data" / "feedback-reports"
+FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@app.route("/api/reports", methods=["POST"])
+def api_submit_report():
+    """Submit a feedback report with rich context."""
+    body = request.get_json() or {}
+
+    # Required fields
+    description = (body.get("description") or "").strip()
+    if not description:
+        return jsonify({"error": "Description is required"}), 400
+
+    feedback = {
+        "id": str(uuid.uuid4())[:8],
+        "created_at": datetime.utcnow().isoformat(),
+        "status": "new",  # new → acknowledged → in_progress → resolved → wont_fix
+
+        # User input
+        "category": body.get("category", "general"),   # bug, feature, content, ux, general
+        "priority": body.get("priority", "medium"),     # low, medium, high, critical
+        "description": description,
+        "steps_to_reproduce": body.get("steps_to_reproduce", ""),
+        "expected_behaviour": body.get("expected_behaviour", ""),
+        "suggested_solution": body.get("suggested_solution", ""),
+
+        # Auto-captured context
+        "page_url": body.get("page_url", ""),
+        "page_title": body.get("page_title", ""),
+        "active_tab": body.get("active_tab", ""),
+        "user_agent": request.headers.get("User-Agent", ""),
+        "screen_size": body.get("screen_size", ""),
+        "current_course": body.get("current_course"),   # {id, name, subject, year}
+        "current_scheme": body.get("current_scheme"),    # {id, title}
+        "current_selection": body.get("current_selection"),  # whatever the user had selected
+
+        # Optional screenshot (base64 PNG)
+        "screenshot": body.get("screenshot"),
+
+        # Resolution tracking
+        "resolved_at": None,
+        "resolution_notes": "",
+        "developer_notes": "",
+    }
+
+    # Save
+    fpath = FEEDBACK_DIR / f"{feedback['id']}.json"
+    fpath.write_text(json.dumps(feedback, indent=2))
+
+    return jsonify({"id": feedback["id"], "status": "submitted"})
+
+
+@app.route("/api/reports")
+def api_list_reports():
+    """List all feedback reports, newest first. Filter by status or category."""
+    status_filter = request.args.get("status")
+    category_filter = request.args.get("category")
+
+    reports = []
+    for p in sorted(FEEDBACK_DIR.glob("*.json"), reverse=True):
+        try:
+            data = json.loads(p.read_text())
+            if status_filter and data.get("status") != status_filter:
+                continue
+            if category_filter and data.get("category") != category_filter:
+                continue
+            # Strip screenshot from listing (too large)
+            summary = {k: v for k, v in data.items() if k != "screenshot"}
+            summary["has_screenshot"] = bool(data.get("screenshot"))
+            reports.append(summary)
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    return jsonify(reports)
+
+
+@app.route("/api/reports/<feedback_id>")
+def api_get_report(feedback_id):
+    """Get a single feedback report (includes screenshot)."""
+    fpath = FEEDBACK_DIR / f"{feedback_id}.json"
+    if not fpath.exists():
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(json.loads(fpath.read_text()))
+
+
+@app.route("/api/reports/<feedback_id>", methods=["PATCH"])
+def api_update_report(feedback_id):
+    """Update feedback status or add developer notes."""
+    fpath = FEEDBACK_DIR / f"{feedback_id}.json"
+    if not fpath.exists():
+        return jsonify({"error": "Not found"}), 404
+
+    data = json.loads(fpath.read_text())
+    body = request.get_json() or {}
+
+    for field in ("status", "resolution_notes", "developer_notes", "priority"):
+        if field in body:
+            data[field] = body[field]
+
+    if body.get("status") in ("resolved", "wont_fix"):
+        data["resolved_at"] = datetime.utcnow().isoformat()
+
+    data["updated_at"] = datetime.utcnow().isoformat()
+    fpath.write_text(json.dumps(data, indent=2))
+    return jsonify(data)
+
+
+@app.route("/api/reports/export")
+def api_export_reports():
+    """Export all feedback as a single JSON array for review."""
+    reports = []
+    for p in sorted(FEEDBACK_DIR.glob("*.json")):
+        try:
+            data = json.loads(p.read_text())
+            # Strip screenshots for export (keep has_screenshot flag)
+            data["has_screenshot"] = bool(data.get("screenshot"))
+            data.pop("screenshot", None)
+            reports.append(data)
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    return jsonify(reports)
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=5050)

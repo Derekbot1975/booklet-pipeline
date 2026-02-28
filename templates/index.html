@@ -828,6 +828,7 @@
           <div class="hub-tab" onclick="switchHubTab('maps')">🗺️ Student Maps</div>
           <div class="hub-tab" onclick="switchHubTab('ref-docs')">📄 Reference Docs</div>
           <div class="hub-tab" onclick="switchHubTab('question-bank')">📝 Question Bank</div>
+          <div class="hub-tab" onclick="switchHubTab('feedback-review')">📋 Feedback Review</div>
         </div>
 
         <!-- Schemes Tab -->
@@ -1047,6 +1048,36 @@
             Generate assessments from the lesson detail panel — they'll appear here.
           </div>
           <div id="assessment-list"></div>
+        </div>
+
+        <!-- Feedback Review Tab -->
+        <div class="hub-tab-panel" id="hub-tab-feedback-review">
+          <div class="pm-help">
+            <strong>Feedback Review</strong> — All user-submitted bug reports, feature requests, and feedback.
+            Use the filters to find what matters most. Update status as you address each item.
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+            <select id="fb-filter-status" onchange="loadFeedbackReview()" style="padding:6px 10px; border-radius:6px; border:1px solid #ddd;">
+              <option value="">All statuses</option>
+              <option value="new">🆕 New</option>
+              <option value="acknowledged">👀 Acknowledged</option>
+              <option value="in_progress">🔧 In Progress</option>
+              <option value="resolved">✅ Resolved</option>
+              <option value="wont_fix">❌ Won't Fix</option>
+            </select>
+            <select id="fb-filter-category" onchange="loadFeedbackReview()" style="padding:6px 10px; border-radius:6px; border:1px solid #ddd;">
+              <option value="">All categories</option>
+              <option value="bug">🐛 Bugs</option>
+              <option value="content">📚 Content</option>
+              <option value="ux">🎨 UX/Design</option>
+              <option value="feature">💡 Features</option>
+              <option value="performance">⚡ Performance</option>
+              <option value="general">💬 General</option>
+            </select>
+            <button class="btn btn-secondary" onclick="loadFeedbackReview()" style="padding:6px 12px;">🔄 Refresh</button>
+            <a href="/api/reports/export" target="_blank" class="btn btn-secondary" style="padding:6px 12px; text-decoration:none;">📥 Export JSON</a>
+          </div>
+          <div id="feedback-review-list"><p style="color:#888;">Click Refresh or switch to this tab to load reports.</p></div>
         </div>
 
       </div>
@@ -3212,13 +3243,15 @@
     function closeCurriculumHub() { document.getElementById('curriculum-hub-modal').classList.remove('open'); }
 
     function switchHubTab(tabName) {
-      const names = ['schemes', 'maps', 'ref-docs', 'question-bank'];
+      const names = ['schemes', 'maps', 'ref-docs', 'question-bank', 'feedback-review'];
       document.querySelectorAll('.hub-tab').forEach((el, i) => {
         el.classList.toggle('active', names[i] === tabName);
       });
       document.querySelectorAll('.hub-tab-panel').forEach(el => {
         el.classList.toggle('active', el.id === `hub-tab-${tabName}`);
       });
+      // Auto-load feedback when switching to that tab
+      if (tabName === 'feedback-review') loadFeedbackReview();
     }
 
     // Backwards-compatible aliases so existing onclick handlers still work
@@ -4090,6 +4123,230 @@
     fetchProgress();
     checkConfig();
     loadTier();
+
+    // ── Feedback System ─────────────────────────────────────────
+    function openFeedbackModal() {
+      document.getElementById('feedback-modal').style.display = 'flex';
+      // Auto-capture context
+      document.getElementById('fb-page-url').value = window.location.href;
+      document.getElementById('fb-page-title').value = document.title;
+      document.getElementById('fb-active-tab').value = document.querySelector('.tab.active')?.textContent?.trim() || '';
+      document.getElementById('fb-screen-size').value = `${window.innerWidth}x${window.innerHeight}`;
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedback-modal').style.display = 'none';
+      document.getElementById('feedback-form').reset();
+      document.getElementById('fb-screenshot-preview').style.display = 'none';
+      document.getElementById('fb-screenshot-data').value = '';
+    }
+
+    async function captureFeedbackScreenshot() {
+      try {
+        // Use html2canvas if available, otherwise skip
+        if (typeof html2canvas === 'undefined') {
+          alert('Screenshot capture not available. Please describe the issue in detail instead.');
+          return;
+        }
+        const canvas = await html2canvas(document.body, {scale: 0.5});
+        const dataUrl = canvas.toDataURL('image/png', 0.7);
+        document.getElementById('fb-screenshot-data').value = dataUrl;
+        const preview = document.getElementById('fb-screenshot-preview');
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+      } catch (e) {
+        console.warn('Screenshot failed:', e);
+      }
+    }
+
+    async function submitFeedback(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      const payload = {
+        category: document.getElementById('fb-category').value,
+        priority: document.getElementById('fb-priority').value,
+        description: document.getElementById('fb-description').value,
+        steps_to_reproduce: document.getElementById('fb-steps').value,
+        expected_behaviour: document.getElementById('fb-expected').value,
+        suggested_solution: document.getElementById('fb-suggestion').value,
+        page_url: document.getElementById('fb-page-url').value,
+        page_title: document.getElementById('fb-page-title').value,
+        active_tab: document.getElementById('fb-active-tab').value,
+        screen_size: document.getElementById('fb-screen-size').value,
+        screenshot: document.getElementById('fb-screenshot-data').value || null,
+      };
+
+      try {
+        const res = await fetch('/api/reports', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(`Thank you! Feedback submitted (ID: ${data.id}). We'll review it shortly.`);
+          closeFeedbackModal();
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Failed to submit: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Feedback';
+      }
+    }
+
+    // Feedback review panel (for admins)
+    async function loadFeedbackReview() {
+      const container = document.getElementById('feedback-review-list');
+      if (!container) return;
+      container.innerHTML = '<p>Loading...</p>';
+
+      const statusFilter = document.getElementById('fb-filter-status')?.value || '';
+      const categoryFilter = document.getElementById('fb-filter-category')?.value || '';
+      let url = '/api/reports?';
+      if (statusFilter) url += `status=${statusFilter}&`;
+      if (categoryFilter) url += `category=${categoryFilter}&`;
+
+      const res = await fetch(url);
+      const reports = await res.json();
+
+      if (reports.length === 0) {
+        container.innerHTML = '<p style="color:#888;">No feedback reports found.</p>';
+        return;
+      }
+
+      const priorityColors = {critical:'#dc3545', high:'#fd7e14', medium:'#ffc107', low:'#6c757d'};
+      const statusColors = {new:'#007bff', acknowledged:'#17a2b8', in_progress:'#ffc107', resolved:'#28a745', wont_fix:'#6c757d'};
+
+      container.innerHTML = reports.map(r => `
+        <div class="card" style="margin-bottom:12px; border-left:4px solid ${priorityColors[r.priority] || '#ccc'};">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div>
+              <span style="background:${statusColors[r.status]};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">${r.status}</span>
+              <span style="background:${priorityColors[r.priority]};color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;margin-left:4px;">${r.priority}</span>
+              <span style="background:#e9ecef;padding:2px 8px;border-radius:4px;font-size:12px;margin-left:4px;">${r.category}</span>
+            </div>
+            <small style="color:#888;">${new Date(r.created_at + 'Z').toLocaleString()} • ${r.id}</small>
+          </div>
+          <p style="margin:0 0 8px 0;"><strong>${r.description.substring(0, 200)}${r.description.length > 200 ? '...' : ''}</strong></p>
+          ${r.steps_to_reproduce ? `<p style="margin:0 0 4px 0;font-size:13px;"><em>Steps:</em> ${r.steps_to_reproduce.substring(0, 150)}</p>` : ''}
+          ${r.expected_behaviour ? `<p style="margin:0 0 4px 0;font-size:13px;"><em>Expected:</em> ${r.expected_behaviour.substring(0, 150)}</p>` : ''}
+          ${r.suggested_solution ? `<p style="margin:0 0 4px 0;font-size:13px;"><em>Suggestion:</em> ${r.suggested_solution.substring(0, 150)}</p>` : ''}
+          ${r.has_screenshot ? `<small style="color:#007bff;">📷 Has screenshot</small>` : ''}
+          <div style="margin-top:8px; display:flex; gap:4px;">
+            <select onchange="updateFeedbackStatus('${r.id}', this.value)" style="font-size:12px;padding:2px 6px;">
+              <option value="" disabled selected>Change status...</option>
+              <option value="acknowledged">Acknowledge</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="wont_fix">Won't Fix</option>
+            </select>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function updateFeedbackStatus(id, status) {
+      await fetch(`/api/reports/${id}`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status})
+      });
+      loadFeedbackReview();
+    }
   </script>
+
+  <!-- Floating Feedback Button -->
+  <button id="feedback-float-btn" onclick="openFeedbackModal()"
+    style="position:fixed; bottom:24px; right:24px; z-index:9999;
+           background:#dc3545; color:#fff; border:none; border-radius:50%;
+           width:56px; height:56px; font-size:24px; cursor:pointer;
+           box-shadow:0 4px 12px rgba(0,0,0,0.3); transition:transform 0.2s;"
+    onmouseover="this.style.transform='scale(1.1)'"
+    onmouseout="this.style.transform='scale(1)'"
+    title="Report a problem or share feedback">
+    🐛
+  </button>
+
+  <!-- Feedback Modal -->
+  <div id="feedback-modal" style="display:none; position:fixed; inset:0; z-index:10000;
+       background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:12px; width:600px; max-height:90vh; overflow-y:auto;
+                padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="margin:0;">📋 Report Feedback</h2>
+        <button onclick="closeFeedbackModal()" style="background:none;border:none;font-size:24px;cursor:pointer;">✕</button>
+      </div>
+
+      <form id="feedback-form" onsubmit="submitFeedback(event)">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-weight:600; font-size:13px;">Category *</label>
+            <select id="fb-category" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+              <option value="bug">🐛 Bug / Error</option>
+              <option value="content">📚 Content Issue (wrong/missing info)</option>
+              <option value="ux">🎨 Usability / Design</option>
+              <option value="feature">💡 Feature Request / Idea</option>
+              <option value="performance">⚡ Performance / Speed</option>
+              <option value="general">💬 General Feedback</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-weight:600; font-size:13px;">Priority *</label>
+            <select id="fb-priority" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;">
+              <option value="low">🟢 Low — Minor issue or nice-to-have</option>
+              <option value="medium" selected>🟡 Medium — Noticeable but workaround exists</option>
+              <option value="high">🟠 High — Significantly impacts usability</option>
+              <option value="critical">🔴 Critical — Blocks use entirely</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-weight:600; font-size:13px;">What happened? *</label>
+          <textarea id="fb-description" required rows="3" placeholder="Describe what you noticed, what went wrong, or what you'd like to see..."
+            style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; resize:vertical;"></textarea>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-weight:600; font-size:13px;">Steps to reproduce (for bugs)</label>
+          <textarea id="fb-steps" rows="2" placeholder="1. Go to... 2. Click on... 3. See error..."
+            style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; resize:vertical;"></textarea>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-weight:600; font-size:13px;">What should have happened?</label>
+            <textarea id="fb-expected" rows="2" placeholder="What you expected to see instead..."
+              style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; resize:vertical;"></textarea>
+          </div>
+          <div>
+            <label style="font-weight:600; font-size:13px;">Suggested solution</label>
+            <textarea id="fb-suggestion" rows="2" placeholder="Any ideas for how to fix or improve this?"
+              style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; resize:vertical;"></textarea>
+          </div>
+        </div>
+
+        <!-- Hidden auto-captured fields -->
+        <input type="hidden" id="fb-page-url">
+        <input type="hidden" id="fb-page-title">
+        <input type="hidden" id="fb-active-tab">
+        <input type="hidden" id="fb-screen-size">
+        <input type="hidden" id="fb-screenshot-data">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+          <button type="submit" class="btn btn-primary" style="padding:10px 24px;">Submit Feedback</button>
+          <small style="color:#888;">Context (page, tab, screen) captured automatically</small>
+        </div>
+      </form>
+
+      <img id="fb-screenshot-preview" style="display:none; max-width:100%; margin-top:12px; border:1px solid #ddd; border-radius:6px;" alt="Screenshot">
+    </div>
+  </div>
 </body>
 </html>
