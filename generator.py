@@ -214,12 +214,12 @@ def generate_booklet(lesson, prompt_text, model="claude-sonnet-4-5-20250929",
     risk lower quality on complex structured content. Opus is overkill
     for templated generation.
     """
-    client = get_client()
+    from ai_client import create_message
     start = time.time()
 
     system_prompt = get_system_prompt(course_config)
 
-    message = client.messages.create(
+    message = create_message(
         model=model,
         max_tokens=16000,
         system=[

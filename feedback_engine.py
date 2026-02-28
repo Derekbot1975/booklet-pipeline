@@ -98,7 +98,7 @@ def apply_feedback(md_path, feedback_text, lesson, course_id,
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY not set")
 
-    client = anthropic.Anthropic(api_key=api_key)
+    from ai_client import create_message
 
     # Back up original before editing
     version_num = len(load_feedback_history(course_id, lesson["year"],
@@ -113,7 +113,7 @@ def apply_feedback(md_path, feedback_text, lesson, course_id,
     )
 
     start = time.time()
-    message = client.messages.create(
+    message = create_message(
         model=model,
         max_tokens=16000,
         system=[

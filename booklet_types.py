@@ -344,7 +344,8 @@ def generate_typed_booklet(lesson, booklet_type, course_config,
         }
     ]
 
-    response = client.messages.create(
+    from ai_client import create_message
+    response = create_message(
         model=model,
         max_tokens=8000,
         system=system_parts,

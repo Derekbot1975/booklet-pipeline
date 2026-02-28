@@ -191,6 +191,12 @@ def _get_client():
     return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 
+def _create_message(**kwargs):
+    """Create a message using streaming to avoid the 10-minute SDK timeout."""
+    from ai_client import create_message
+    return create_message(**kwargs)
+
+
 def _scheme_path(scheme_id):
     return SCHEMES_DIR / f"{scheme_id}.json"
 
@@ -545,7 +551,6 @@ def review_scheme(scheme_id, reference_context="", model="claude-sonnet-4-5-2025
     if not scheme:
         raise ValueError(f"Scheme not found: {scheme_id}")
 
-    client = _get_client()
     start = time.time()
 
     user_prompt = f"""Review this scheme of work against the reference materials provided.
@@ -611,7 +616,7 @@ Return your review as JSON with this EXACT structure:
         }
     ]
 
-    response = client.messages.create(
+    response = _create_message(
         model=model,
         max_tokens=8000,
         system=system_parts,
@@ -661,7 +666,6 @@ def generate_scheme(subject, key_stage, year_group, lessons_per_week=3,
 
     Returns saved scheme data.
     """
-    client = _get_client()
     start = time.time()
 
     total_terms = 6  # UK academic year: 6 half-terms
@@ -726,7 +730,7 @@ Number lessons sequentially across the whole year (1 to {total_lessons})."""
         }
     ]
 
-    response = client.messages.create(
+    response = _create_message(
         model=model,
         max_tokens=32000,
         system=system_parts,
@@ -775,7 +779,6 @@ def apply_suggestion(scheme_id, suggestion, reference_context="",
     if not scheme:
         raise ValueError(f"Scheme not found: {scheme_id}")
 
-    client = _get_client()
     start = time.time()
 
     user_prompt = f"""Apply this suggestion to the scheme of work:
@@ -789,7 +792,7 @@ CURRENT SCHEME:
 Return the COMPLETE modified scheme as JSON (same structure, with the suggestion applied).
 Do NOT remove or change anything else — only apply the requested change."""
 
-    response = client.messages.create(
+    response = _create_message(
         model=model,
         max_tokens=16000,
         system=[{

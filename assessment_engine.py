@@ -220,7 +220,8 @@ Return the assessment as JSON:
     }}
 }}"""
 
-    response = client.messages.create(
+    from ai_client import create_message
+    response = create_message(
         model=model,
         max_tokens=10000,
         system=[{

@@ -234,7 +234,8 @@ RULES:
 - Strand colours should be distinct and visually appealing
 - Include prior and future learning links where relevant"""
 
-    response = client.messages.create(
+    from ai_client import create_message
+    response = create_message(
         model=model,
         max_tokens=16000,
         system=[{

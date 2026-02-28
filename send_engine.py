@@ -121,10 +121,10 @@ def generate_send_booklet(original_md_path, student, lesson,
         f"ORIGINAL BOOKLET TO ADAPT:\n\n{original_content}"
     )
 
-    client = anthropic.Anthropic(api_key=api_key)
+    from ai_client import create_message
 
     start = time.time()
-    message = client.messages.create(
+    message = create_message(
         model=model,
         max_tokens=16000,
         system=[

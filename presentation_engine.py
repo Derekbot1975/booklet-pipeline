@@ -129,7 +129,8 @@ def generate_slide_content(lesson, reference_context="",
 
     user_parts.append(f"\nReturn a JSON array of slide objects.")
 
-    response = client.messages.create(
+    from ai_client import create_message
+    response = create_message(
         model=model,
         max_tokens=8000,
         system=[{
